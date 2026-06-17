@@ -31,6 +31,9 @@ python3 seek_search.py --keywords "Senior Full Stack Engineer" --where "All Aust
 # Human-readable table
 python3 seek_search.py --keywords "Founding Engineer" --where "All Australia" --table
 
+# Only roles posted in the last 7 days
+python3 seek_search.py --keywords "Data Scientist" --where "All Sydney NSW" --days 7
+
 # Fetch ONE job's FULL description (by id or URL) — for /apply
 python3 seek_search.py --detail "https://www.seek.com.au/job/12345678"
 python3 seek_search.py --detail 12345678 --table
@@ -52,11 +55,20 @@ converts the description HTML to plain text, ready to feed straight into `/apply
 | Flag | Default | Meaning |
 |------|---------|---------|
 | `--keywords` | — | Search terms, e.g. `"AI Engineer"`, `"Solutions Architect"` |
-| `--where` | `All Brisbane QLD` | SEEK location string, e.g. `"All Sydney NSW"`, `"All Australia"` |
+| `--where` | `All Brisbane QLD` | SEEK location string, e.g. `"All Sydney NSW"`, `"All Australia"` (see note below) |
 | `--pages` | `2` | Result pages to fetch (20 jobs/page) |
+| `--days` | `0` | Only postings from the last N days (`0` = no date filter) |
 | `--remote` | off | Keep only roles whose arrangement/teaser indicate remote or hybrid |
 | `--detail` | — | Fetch one job's full description by id or URL (GraphQL) |
 | `--table` | off | Print a human table instead of JSON |
+
+### Finding the right `--where` string
+
+SEEK uses location strings like `All Brisbane QLD`, `All Sydney NSW`, `All Melbourne VIC`,
+`All Perth WA`, `All Adelaide SA`, or `All Australia` for nationwide. The pattern is
+`All <City> <STATE>`. The quickest way to find an exact string: run a search on
+[seek.com.au](https://www.seek.com.au) in your browser and copy the location label SEEK shows
+in the URL/filter. Unknown locations fall back to a broad search rather than erroring.
 
 ### Search output fields (JSON)
 
@@ -77,3 +89,5 @@ converts the description HTML to plain text, ready to feed straight into `/apply
   fixed by hand. Last verified working: 2026-06.
 - Salary is only present when the advertiser published it (many AU posts hide it).
 - GraphQL may return `rate_limited` under heavy use — space out `--detail` calls if so.
+- A quick health check that both endpoints still work: run `../verify.sh` from the repo root
+  (or see the smoke test in the main README).

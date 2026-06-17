@@ -59,6 +59,8 @@ cd tools/seek-search
 python3 seek_search.py --keywords "<role title>" --where "<location>" --pages 2
 # add --remote when the user asked for remote, or for an Australia-wide remote sweep:
 python3 seek_search.py --keywords "<role title>" --where "All Australia" --remote --pages 2
+# add --days N to limit to recent postings (e.g. --days 14 on a repeat/weekly run):
+python3 seek_search.py --keywords "<role title>" --where "<location>" --days 14 --pages 2
 ```
 
 - Run the CLI via the **Bash** tool. It prints a JSON array — parse it directly.

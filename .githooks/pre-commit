@@ -1,0 +1,49 @@
+#!/bin/sh
+#
+# Pre-commit guard for AI Job Search AU.
+#
+# These files are TRACKED by git but get filled with your personal data by /setup
+# (name, contact details, employment history, search targets). Committing them to a
+# public fork would leak your PII. This hook blocks any commit that stages changes to
+# them.
+#
+# Enable it once with:
+#     git config core.hooksPath .githooks
+#
+# If you are INTENTIONALLY editing the shipped placeholder templates (e.g. contributing
+# upstream) and there is no real personal data in the change, bypass with:
+#     git commit --no-verify
+#
+# See INSTALL.md -> "Keeping your data private".
+
+profile_files="
+CLAUDE.md
+cv/main_example.tex
+.claude/skills/job-scraper/search-queries.md
+.claude/skills/job-application-assistant/01-candidate-profile.md
+.claude/skills/job-application-assistant/02-behavioral-profile.md
+.claude/skills/job-application-assistant/04-job-evaluation.md
+.claude/skills/job-application-assistant/05-cv-templates.md
+.claude/skills/job-application-assistant/07-interview-prep.md
+"
+
+blocked=""
+for f in $profile_files; do
+    # `git diff --cached --quiet` exits non-zero when the file has staged changes.
+    if ! git diff --cached --quiet -- "$f" 2>/dev/null; then
+        blocked="$blocked  $f\n"
+    fi
+done
+
+if [ -n "$blocked" ]; then
+    printf '\n\033[31mBLOCKED:\033[0m you are committing personal profile files:\n\n'
+    printf "$blocked"
+    printf '\nThese are filled with your PII by /setup and must NOT be pushed to a public fork.\n'
+    printf 'Options:\n'
+    printf '  - Unstage them:        git restore --staged <file>\n'
+    printf '  - Keep them untracked: git update-index --skip-worktree <file>\n'
+    printf '  - Editing the TEMPLATE on purpose (no real data)? bypass: git commit --no-verify\n\n'
+    exit 1
+fi
+
+exit 0

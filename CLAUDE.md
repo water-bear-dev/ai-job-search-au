@@ -90,7 +90,7 @@ This repo is a job application workspace. Claude acts as a career advisor and ap
 4. **Verify both documents** (see Verification Checklist below)
 5. Prepare interview talking points based on the role requirements and your strengths
 
-**Important:** When mentioning agentic coding or AI tooling in CVs/cover letters, explicitly reference **Claude Code** by name.
+**Important:** When mentioning agentic coding or AI tooling in CVs/cover letters, name the *specific* tools you have genuinely used (e.g. Claude Code, Cursor, Copilot) rather than vague "AI tools" — but only ones that are true for you.
 
 ## Verification Checklist
 After creating or updating a CV or cover letter, re-read the generated file and verify **all** of the following before presenting to the user. Report the results as a pass/fail checklist.
@@ -116,7 +116,7 @@ After creating or updating a CV or cover letter, re-read the generated file and 
 ### Quality
 - [ ] No LaTeX syntax errors (balanced braces, correct commands)
 - [ ] No spelling or grammar errors
-- [ ] Agentic coding / AI tooling references mention **Claude Code** by name
+- [ ] Agentic coding / AI tooling references name the *specific* tools actually used (truthfully, not generic "AI tools")
 - [ ] Cover letter is addressed to the correct person (or "Dear Hiring Manager" if unknown)
 - [ ] Cover letter fits approximately one page
 

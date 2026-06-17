@@ -90,6 +90,9 @@ python3 seek_search.py --detail https://www.seek.com.au/job/12345678
 Zero dependencies (Python 3.10+ stdlib only). Full docs in
 [`tools/seek-search/README.md`](tools/seek-search/README.md).
 
+**Health check:** SEEK's endpoints are unofficial, so run `./verify.sh` any time to confirm
+search + detail still work (it exits non-zero with a pointer to the fix if SEEK changes shape).
+
 ## Job boards
 
 | Board | Status | Notes |
@@ -140,11 +143,25 @@ All claims are checked against your real profile — the system never fabricates
 
 ## Privacy ⚠️
 
-Your profile files (`CLAUDE.md` and `.claude/skills/job-application-assistant/*.md`) are
-**tracked by git**. After `/setup` fills them with your real data, **do not commit and push
-them to a public fork.** The `.gitignore` already protects your resume, search results,
-generated CVs/cover letters, and the `documents/` folder — but the profile files are the
-exception. See [INSTALL.md → Keeping your data private](INSTALL.md#keeping-your-data-private).
+Several files are **tracked by git** but get filled with your personal data by `/setup`
+(name, contact details, employment history, search targets). On a public fork, **don't push
+them.** The full list:
+
+- `CLAUDE.md`
+- `cv/main_example.tex`
+- `.claude/skills/job-scraper/search-queries.md`
+- `.claude/skills/job-application-assistant/{01-candidate-profile, 02-behavioral-profile,
+  04-job-evaluation, 05-cv-templates, 07-interview-prep}.md`
+
+**Enable the included safety hook once and it blocks committing these automatically:**
+
+```bash
+git config core.hooksPath .githooks
+```
+
+The `.gitignore` already protects your resume, search results, generated CVs/cover letters,
+the tracker CSV, salary data, and the `documents/` folder. The files above are the exception
+the hook covers. See [INSTALL.md → Keeping your data private](INSTALL.md#keeping-your-data-private).
 
 ## Customisation
 
@@ -158,7 +175,7 @@ exception. See [INSTALL.md → Keeping your data private](INSTALL.md#keeping-you
 
 - **[Mads Lorentzen](https://github.com/MadsLorentzen)** — the original
   [ai-job-search](https://github.com/MadsLorentzen/ai-job-search) framework this is built on.
-- **[Mikkel Krogholm](https://github.com/mikkelkrogsholm)** — the original job-search skill pattern.
+- **[Mikkel Krogsholm](https://github.com/mikkelkrogsholm)** — the original job-search skill pattern.
 - **[qinscode/SeekSpider](https://github.com/qinscode/SeekSpider)** — the SEEK API approach
   that `tools/seek-search` adapts (reduced here to a single zero-dependency script).
 - Built with [Claude Code](https://claude.com/claude-code) by [Anthropic](https://anthropic.com).

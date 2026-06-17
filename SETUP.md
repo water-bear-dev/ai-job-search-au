@@ -8,9 +8,13 @@ LaTeX), see **[INSTALL.md](INSTALL.md)** — this guide assumes they're in place
 ```bash
 gh repo fork <your-username>/ai-job-search-au --clone
 cd ai-job-search-au
+
+# Enable the privacy hook — blocks committing profile files filled with your PII
+git config core.hooksPath .githooks
 ```
 
-Or fork on GitHub and clone your fork manually.
+Or fork on GitHub and clone your fork manually. **Run the `git config` line either way** if
+your fork is public — see [INSTALL.md → Keeping your data private](INSTALL.md#keeping-your-data-private).
 
 ## 2. Check the SEEK tool works
 
@@ -53,8 +57,10 @@ Then:
 | `cv/main_example.tex` | Your LaTeX CV with real details |
 | `.claude/skills/job-scraper/search-queries.md` | Role keywords + AU locations for `/scrape` |
 
-> **Privacy:** several of these files are tracked by git. If your fork is public, don't push
-> your filled-in profile. See [INSTALL.md → Keeping your data private](INSTALL.md#keeping-your-data-private).
+> **Privacy:** several of these files (`CLAUDE.md`, `cv/main_example.tex`, `search-queries.md`,
+> and the `01/02/04/05/07` profile files) are tracked by git. If your fork is public, don't push
+> your filled-in profile — the `pre-commit` hook from step 1 blocks this automatically once
+> enabled. See [INSTALL.md → Keeping your data private](INSTALL.md#keeping-your-data-private).
 
 ### Re-running setup
 

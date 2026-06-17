@@ -12,7 +12,7 @@ instructions on the expected format and how to convert from Excel.
 
 Usage:
     python salary_lookup.py "Company Name"
-    python salary_lookup.py "Company Name" --city "København"
+    python salary_lookup.py "Company Name" --city "Sydney"
     python salary_lookup.py "Company Name" --json
     python salary_lookup.py --list-all
 """
@@ -26,19 +26,23 @@ from pathlib import Path
 
 DATA_FILE = Path(__file__).parent / "salary_data.json"
 
-# Common Danish <-> anglicized spelling variants
+# Accent folding for robust matching (accented spellings <-> ASCII)
 SPELLING_VARIANTS = {
     "ø": "o", "æ": "ae", "å": "aa",
     "ö": "o", "ä": "ae", "ü": "u",
+    "é": "e", "è": "e", "á": "a", "ñ": "n",
 }
 
-# Legal suffixes and noise to strip when matching company names
+# Legal suffixes and noise to strip when matching company names.
+# Tuned for Australian entity names (Pty Ltd / Ltd / Limited); add your own
+# if your salary dataset uses other conventions.
 STRIP_PATTERNS = [
-    r"\ba/s\b", r"\baps\b", r"\bi/s\b", r"\bp/s\b", r"\bk/s\b",
-    r"\bivs\b", r"\bamba\b", r"\ba\.m\.b\.a\.\b",
-    r"\(vg\)", r"\(.*?\)",  # (VG) and other parentheticals
-    r"\bdanmark\b", r"\bdenmark\b", r"\bscandinavia\b", r"\bnordic\b",
-    r"\bgroup\b", r"\bholding\b",
+    r"\bpty\s+ltd\b", r"\bpty\s+limited\b", r"\bpty\b",
+    r"\blimited\b", r"\bltd\b", r"\bplc\b", r"\binc\b", r"\bllc\b",
+    r"\bproprietary\b",
+    r"\(.*?\)",  # parentheticals
+    r"\baustralia\b", r"\baustralasia\b", r"\bapac\b",
+    r"\bgroup\b", r"\bholdings?\b",
     r",\s*.*$",  # everything after comma (sub-entities)
 ]
 
@@ -67,10 +71,10 @@ def normalize(s):
 
 
 def anglicize(s):
-    """Convert Danish/Nordic characters to anglicized equivalents."""
+    """Fold accented characters to their ASCII equivalents."""
     s = s.lower()
-    for danish, english in SPELLING_VARIANTS.items():
-        s = s.replace(danish, english)
+    for accented, ascii_ in SPELLING_VARIANTS.items():
+        s = s.replace(accented, ascii_)
     return s
 
 

@@ -49,7 +49,19 @@ re-verify:
 - **Rewrote** `README.md`, `INSTALL.md`, `SETUP.md` for the AU market; genericized
   `.claude/commands/{setup,apply}.md` and `.claude/skills/job-scraper/` (SKILL + search
   queries). `/apply` now resolves SEEK and LinkedIn URLs directly via the CLIs.
-- **Scrubbed** all Denmark-specific references (portals, `.dk`, Danish closings, etc.).
+- **Retuned** the salary tool (`salary_lookup.py`, `tools/convert_salary_excel.py`,
+  `tools/README_SALARY_TOOL.md`) for AU: Australian legal-suffix stripping (Pty Ltd / Ltd /
+  Limited) and AUD examples instead of Danish A/S / DKK / Copenhagen. (Accent-folding is kept
+  but reframed as generic, not "Danish/Nordic".)
+- **Added** `.claude/commands/scrape.md` — a thin wrapper so the documented `/scrape` slash
+  command resolves (skills are invoked by directory name `/job-scraper`, so `/scrape` alone
+  would not have triggered the skill). Also added `--days` recency filter to `seek-search`,
+  a `pre-commit` privacy hook (`.githooks/`), and a `verify.sh` endpoint smoke test.
+- **Removed** an orphan `.claude/agents/gemini-research-expert.md` (unused, depended on an
+  external `gemini` CLI) and a stale `Bash(bun:*)` permission / `bun.lock` gitignore line.
+- **Softened** the upstream "always name-drop Claude Code in CVs/cover letters" rule to "name
+  the specific tools you actually used" (truthful, non-promotional).
+- **Scrubbed** all Denmark-specific references (portals, `.dk`, Danish closings, salary tool).
 - **Reset** all profile files to placeholders (this template ships no personal data).
 
 ## Design decisions & rationale
@@ -64,13 +76,17 @@ re-verify:
   (stderr), and (c) documented as at-your-own-risk in the tool README, main README, and
   INSTALL. SEEK is positioned as the primary, supported source. A reviewer should sanity-check
   whether this posture is sufficient or whether LinkedIn should be removed entirely.
-- **Privacy footgun called out explicitly.** The profile files (`CLAUDE.md` and
-  `.claude/skills/job-application-assistant/*.md`) are git-**tracked**, inherited from
-  upstream. After `/setup` fills them with real data they appear as normal modified files, so
-  a user with a public fork could push their own PII. `.gitignore` covers resume/`documents/`/
-  search-state/PDFs, but NOT these. `INSTALL.md → Keeping your data private` documents a
-  `git update-index --skip-worktree` mitigation. A cleaner long-term fix (move personal data
-  into a gitignored `profile.local`) is noted as a possible improvement.
+- **Privacy footgun mitigated by a pre-commit hook.** The profile files are git-**tracked**,
+  inherited from upstream. After `/setup` fills them with real data they appear as normal
+  modified files, so a user with a public fork could push their own PII. The full tracked-PII
+  set is `CLAUDE.md`, `cv/main_example.tex`, `.claude/skills/job-scraper/search-queries.md`,
+  and `.claude/skills/job-application-assistant/{01,02,04,05,07}.md` — note `cv/main_example.tex`
+  is force-tracked (`!cv/main_example.tex`) and `/setup` writes real CV data into it, which is
+  easy to miss. Mitigation: `.githooks/pre-commit` **blocks** committing any of these (enable
+  with `git config core.hooksPath .githooks`), plus a corrected manual grep and the complete
+  list in README/INSTALL/SETUP. `git update-index --skip-worktree` remains an alternative. A
+  fuller redesign (personal data in a gitignored `profile.local` imported by `CLAUDE.md`) is
+  still possible but was deferred to avoid disturbing skill/runtime loading.
 
 ## Known fragilities / maintenance
 
@@ -88,5 +104,5 @@ re-verify:
 ## Attribution
 
 - Upstream framework: [Mads Lorentzen](https://github.com/MadsLorentzen) (MIT — LICENSE preserved).
-- Original job-search skill pattern: [Mikkel Krogholm](https://github.com/mikkelkrogsholm).
+- Original job-search skill pattern: [Mikkel Krogsholm](https://github.com/mikkelkrogsholm).
 - SEEK API approach: [qinscode/SeekSpider](https://github.com/qinscode/SeekSpider).

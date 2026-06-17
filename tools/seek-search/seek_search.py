@@ -13,6 +13,7 @@ candidate profile; /apply uses --detail to pull a posting's full description.
 Usage:
   python3 seek_search.py --keywords "AI Engineer" --where "All Brisbane QLD" --pages 2
   python3 seek_search.py --keywords "Senior Full Stack" --remote --pages 3
+  python3 seek_search.py --keywords "Data Scientist" --where "All Sydney NSW" --days 7
   python3 seek_search.py --keywords "Founding Engineer" --where "All Australia" --table
   python3 seek_search.py --detail https://www.seek.com.au/job/12345678
 
@@ -39,7 +40,7 @@ UA = (
 )
 
 
-def fetch_page(keywords, where, page):
+def fetch_page(keywords, where, page, days=0):
     params = {
         "siteKey": "AU-Main",
         "sourcesystem": "houston",
@@ -49,6 +50,8 @@ def fetch_page(keywords, where, page):
         "locale": "en-AU",
         "include": "seodata",
     }
+    if days and days > 0:
+        params["daterange"] = days  # SEEK: only postings from the last N days
     url = f"{API}?{urlencode(params)}"
     req = Request(url, headers={"User-Agent": UA, "Accept": "application/json"})
     with urlopen(req, timeout=30) as resp:
@@ -83,12 +86,12 @@ def is_remote_or_hybrid(job):
     return any(k in blob for k in ("remote", "hybrid", "work from home", "wfh"))
 
 
-def search(keywords, where, pages, remote_only):
+def search(keywords, where, pages, remote_only, days=0):
     seen = set()
     out = []
     for page in range(1, pages + 1):
         try:
-            data = fetch_page(keywords, where, page)
+            data = fetch_page(keywords, where, page, days)
         except HTTPError as e:
             print(f"[seek-search] HTTP {e.code} on page {page} for '{keywords}'", file=sys.stderr)
             break
@@ -214,6 +217,8 @@ def main():
     ap.add_argument("--where", default="All Brisbane QLD",
                     help='SEEK location, e.g. "All Brisbane QLD", "All Sydney NSW", "All Australia" (default: All Brisbane QLD)')
     ap.add_argument("--pages", type=int, default=2, help="Number of result pages to fetch (20/page). Default 2.")
+    ap.add_argument("--days", type=int, default=0,
+                    help="Only postings from the last N days (default 0 = no date filter).")
     ap.add_argument("--remote", action="store_true", help="Keep only remote/hybrid roles.")
     ap.add_argument("--detail", metavar="ID_OR_URL",
                     help="Fetch ONE job's full description by SEEK job id or job URL (uses the GraphQL API).")
@@ -252,7 +257,7 @@ def main():
     if not args.keywords:
         ap.error("provide --keywords for a search, or --detail <id|url> for one job's full description")
 
-    jobs = search(args.keywords, args.where, args.pages, args.remote)
+    jobs = search(args.keywords, args.where, args.pages, args.remote, args.days)
 
     if args.table:
         print_table(jobs)

@@ -105,12 +105,14 @@ gh auth login
 ## Verify the setup
 
 ```bash
-# SEEK discovery works (should print live Brisbane jobs):
-cd tools/seek-search
-python3 seek_search.py --keywords "Software Engineer" --where "All Brisbane QLD" --pages 1 --table
+# One-shot smoke test — confirms both SEEK endpoints (search + detail) still work:
+./verify.sh
+
+# Or just the search, as a table:
+python3 tools/seek-search/seek_search.py --keywords "Software Engineer" --where "All Brisbane QLD" --pages 1 --table
 
 # LaTeX works (compile the example CV; should say "Output written on ... (2 pages ...)"):
-cd ../../cv
+cd cv
 lualatex -interaction=nonstopmode main_example.tex
 ```
 
@@ -122,22 +124,40 @@ This repo is designed to be forked. The `.gitignore` already keeps these **out**
 your resume and `documents/`, `seen_jobs.json`, all compiled PDFs, generated `cv/main_*.tex`
 and cover letters, the tracker CSV, and salary data.
 
-**The one exception:** your **profile files are tracked** —
+**The exceptions:** these files are **tracked** but get filled with your real name, contact
+details, history, and search targets by `/setup`:
 
 - `CLAUDE.md`
-- `.claude/skills/job-application-assistant/01-candidate-profile.md` (and `02`, `04`, `05`, `07`)
+- `cv/main_example.tex`
+- `.claude/skills/job-scraper/search-queries.md`
+- `.claude/skills/job-application-assistant/01-candidate-profile.md` (and `02-behavioral-profile`,
+  `04-job-evaluation`, `05-cv-templates`, `07-interview-prep`)
 
-After `/setup` fills these with your real name, contact details, and history, they show up
-as normal modified files. If your fork is public, **don't `git push` them.** Options:
+After `/setup` fills them, they show up as normal modified files. If your fork is public,
+**don't `git push` them.**
 
-1. **Simplest:** just never commit them. Run `git update-index --skip-worktree CLAUDE.md`
-   (and the same for each profile file) so git ignores your local changes to them.
+### Recommended: enable the safety hook (one command)
+
+The repo ships a `pre-commit` hook that **blocks** any commit staging the files above:
+
+```bash
+git config core.hooksPath .githooks
+```
+
+That's it — git now refuses to commit your filled-in profile. (Intentionally editing the
+placeholder *templates* with no real data? Bypass with `git commit --no-verify`.)
+
+### Other options
+
+1. **Never commit them:** `git update-index --skip-worktree CLAUDE.md` (repeat for each file
+   above) so git ignores your local changes to them.
 2. **Belt-and-braces:** keep your filled-in copy in a *private* repo or local-only folder,
    and only push template/placeholder versions publicly.
 
-A quick pre-push safety check:
+A manual pre-push safety check (covers the full set):
 
 ```bash
-git diff --cached --name-only | grep -E 'CLAUDE.md|01-candidate-profile|02-behavioral' \
+git diff --cached --name-only \
+  | grep -E 'CLAUDE\.md|cv/main_example\.tex|search-queries\.md|job-application-assistant/(01|02|04|05|07)' \
   && echo "STOP: personal profile staged — unstage before pushing"
 ```
