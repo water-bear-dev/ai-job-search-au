@@ -58,8 +58,15 @@ documents/applications/**
 # Personal job search tracking
 job_search_tracker.csv
 
+# Agent session handoff (local only — copy from agent_handoff.example.md)
+agent_handoff.md
+
 # Upskill reports (personal output)
 upskill/*.md
 
-# Agent usage logs
-.agents/
+# Agent usage logs (allow Antigravity adapter dirs)
+.agents/*
+!.agents/skills/
+!.agents/skills/**
+!.agents/workflows/
+!.agents/workflows/**

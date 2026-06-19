@@ -4,7 +4,6 @@ description: >
   Searches the Australian job market (SEEK via the seek-search CLI, plus startup boards
   via web search) for new positions matching your profile. Deduplicates across runs.
   Triggers on: job scrape, find jobs, search jobs, new jobs, job search, scrape jobs, /scrape
-allowed-tools: Read, Write, Edit, Glob, Grep, Bash, WebFetch, WebSearch, Agent, AskUserQuestion
 ---
 
 # Job Scraper (Australian market)
@@ -46,7 +45,7 @@ Optional arguments:
 1. Read `job_scraper/seen_jobs.json` (create if missing — start with `{"seen": {}}`)
 2. Read `job_search_tracker.csv` to extract already-applied companies+roles
 3. Read `search-queries.md` (this directory) for the priority categories, role keywords, and `--where` locations
-4. Read the candidate profile (`.claude/skills/job-application-assistant/01-candidate-profile.md` and `04-job-evaluation.md`) to ground the fit assessment in Step 4
+4. Read the candidate profile (`skills/job-application-assistant/01-candidate-profile.md` and `04-job-evaluation.md`) to ground the fit assessment in Step 4
 
 ### Step 1: Search SEEK (primary)
 
@@ -63,7 +62,7 @@ python3 seek_search.py --keywords "<role title>" --where "All Australia" --remot
 python3 seek_search.py --keywords "<role title>" --where "<location>" --days 14 --pages 2
 ```
 
-- Run the CLI via the **Bash** tool. It prints a JSON array — parse it directly.
+- Run the CLI via a **shell command**. It prints a JSON array — parse it directly.
 - Use the candidate's configured location tiers from `search-queries.md` for `--where`.
 - Batch the keyword calls; each is fast.
 

@@ -10,8 +10,8 @@ Follow these steps **exactly in order**. Do not skip steps.
 
 Read these two files in parallel before doing anything else. You must know what is already there so you do not propose duplicates.
 
-- `.claude/skills/job-application-assistant/01-candidate-profile.md`
-- `.claude/skills/job-application-assistant/02-behavioral-profile.md`
+- `skills/job-application-assistant/01-candidate-profile.md`
+- `skills/job-application-assistant/02-behavioral-profile.md`
 
 Hold this content in context throughout the command. Do not re-read these files later.
 
@@ -166,7 +166,7 @@ Wait for the user's response before writing anything.
 
 ## Step 5: Write Confirmed Additions
 
-Apply only the confirmed items. Use the Edit tool to add to the relevant sections of each file — do not rewrite entire files.
+Apply only the confirmed items. Edit files in place (search/replace) to add to the relevant sections of each file — do not rewrite entire files.
 
 ### Additions to `01-candidate-profile.md`
 - Technical skills (primary and secondary) → append to the Technical Skills section

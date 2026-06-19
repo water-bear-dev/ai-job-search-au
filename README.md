@@ -4,10 +4,13 @@
 
 # AI Job Search — Australia 🇦🇺
 
-An AI-powered job-application framework for the **Australian market**, built on
-[Claude Code](https://claude.com/claude-code). Fork it, fill in your profile, and let
-Claude search SEEK, evaluate fit, tailor your CV, write cover letters, and prep you for
-interviews.
+An AI-powered job-application framework for the **Australian market**. Works with
+**Claude Code**, **Cursor**, and **Google Antigravity / Antigravity CLI**. Fork it, fill in
+your profile, and let the agent search SEEK, evaluate fit, tailor your CV, write cover
+letters, and prep you for interviews.
+
+> **Multi-tool setup:** see [PLATFORMS.md](PLATFORMS.md). After clone, run
+> `./scripts/install-adapters.sh`.
 
 > This is an Australian adaptation of [MadsLorentzen/ai-job-search](https://github.com/MadsLorentzen/ai-job-search)
 > (a Danish-market framework). The core workflow is the same; the job-discovery layer has
@@ -17,7 +20,7 @@ interviews.
 
 ## What this is
 
-A structured workflow that turns Claude Code into a full job-application assistant:
+A structured workflow that turns an AI coding agent into a full job-application assistant:
 
 ```
 /setup            /scrape                 /apply <seek-url | text>
@@ -58,19 +61,23 @@ Both work with nothing more than a browser `User-Agent`. No headless browser, no
 gh repo fork <your-username>/ai-job-search-au --clone
 cd ai-job-search-au
 
-# 2. Start Claude Code and build your profile
-claude
+# 2. Install platform adapters + privacy hook
+./scripts/install-adapters.sh
+git config core.hooksPath .githooks
+
+# 3. Build your profile (Claude Code: claude then /setup; Cursor/Antigravity: /setup)
 /setup
 
-# 3. Search SEEK for matching roles
+# 4. Search SEEK for matching roles
 /scrape
 
-# 4. Apply to one — paste a SEEK URL directly (full description is auto-fetched)
+# 5. Apply to one — paste a SEEK URL directly (full description is auto-fetched)
 /apply https://www.seek.com.au/job/12345678
 ```
 
-See **[INSTALL.md](INSTALL.md)** for everything to install (Claude Code, Python, LaTeX) —
-including a **no-sudo LaTeX setup** that works on locked-down machines.
+See **[INSTALL.md](INSTALL.md)** for prerequisites (Python, LaTeX, your AI tool of choice) —
+including a **no-sudo LaTeX setup** that works on locked-down machines. Tool-specific paths:
+**[PLATFORMS.md](PLATFORMS.md)**. Release history: **[CHANGELOG.md](CHANGELOG.md)**.
 
 ## The `seek-search` tool (works standalone too)
 
@@ -147,10 +154,10 @@ Several files are **tracked by git** but get filled with your personal data by `
 (name, contact details, employment history, search targets). On a public fork, **don't push
 them.** The full list:
 
-- `CLAUDE.md`
+- `AGENTS.md` (also `CLAUDE.md` symlink)
 - `cv/main_example.tex`
-- `.claude/skills/job-scraper/search-queries.md`
-- `.claude/skills/job-application-assistant/{01-candidate-profile, 02-behavioral-profile,
+- `skills/job-scraper/search-queries.md`
+- `skills/job-application-assistant/{01-candidate-profile, 02-behavioral-profile,
   04-job-evaluation, 05-cv-templates, 07-interview-prep}.md`
 
 **Enable the included safety hook once and it blocks committing these automatically:**
@@ -165,7 +172,7 @@ the hook covers. See [INSTALL.md → Keeping your data private](INSTALL.md#keepi
 
 ## Customisation
 
-- **Search queries:** edit `.claude/skills/job-scraper/search-queries.md` — role-title
+- **Search queries:** edit `skills/job-scraper/search-queries.md` — role-title
   keywords and `--where` locations per priority.
 - **LaTeX templates:** the CV uses [moderncv](https://ctan.org/pkg/moderncv); the cover
   letter uses a custom `cover.cls` with Lato/Raleway fonts. Swap in your own.
@@ -178,7 +185,7 @@ the hook covers. See [INSTALL.md → Keeping your data private](INSTALL.md#keepi
 - **[Mikkel Krogsholm](https://github.com/mikkelkrogsholm)** — the original job-search skill pattern.
 - **[qinscode/SeekSpider](https://github.com/qinscode/SeekSpider)** — the SEEK API approach
   that `tools/seek-search` adapts (reduced here to a single zero-dependency script).
-- Built with [Claude Code](https://claude.com/claude-code) by [Anthropic](https://anthropic.com).
+- Built with AI coding agents ([Claude Code](https://claude.com/claude-code), Cursor, Antigravity).
 
 ## License
 

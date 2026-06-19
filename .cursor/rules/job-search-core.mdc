@@ -1,0 +1,14 @@
+---
+description: Job application workspace — read AGENTS.md and use skills/ for application workflows
+alwaysApply: true
+---
+
+# AI Job Search AU
+
+This repo is a job application workspace. For job postings, applications, CV/cover letter work, or interview prep:
+
+1. Read `AGENTS.md` for the candidate profile and verification checklist
+2. Use skills in `skills/` (especially `job-application-assistant`, `job-scraper`, `upskill`)
+3. For multi-step commands, follow `workflows/` or invoke `/setup`, `/apply`, `/scrape`, `/expand`, `/reset`
+
+Always evaluate job fit before drafting applications. Never fabricate skills or experience.

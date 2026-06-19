@@ -63,6 +63,9 @@ re-verify:
   the specific tools you actually used" (truthful, non-promotional).
 - **Scrubbed** all Denmark-specific references (portals, `.dk`, Danish closings, salary tool).
 - **Reset** all profile files to placeholders (this template ships no personal data).
+- **Multi-tool refactor:** canonical content in `skills/`, `workflows/`, and `AGENTS.md`
+  (`CLAUDE.md` symlink). Platform adapters via `.claude/`, `.cursor/`, `.agents/` symlinks +
+  `scripts/install-adapters.sh`. See `PLATFORMS.md`.
 
 ## Design decisions & rationale
 
@@ -79,8 +82,8 @@ re-verify:
 - **Privacy footgun mitigated by a pre-commit hook.** The profile files are git-**tracked**,
   inherited from upstream. After `/setup` fills them with real data they appear as normal
   modified files, so a user with a public fork could push their own PII. The full tracked-PII
-  set is `CLAUDE.md`, `cv/main_example.tex`, `.claude/skills/job-scraper/search-queries.md`,
-  and `.claude/skills/job-application-assistant/{01,02,04,05,07}.md` — note `cv/main_example.tex`
+  set is `AGENTS.md`, `cv/main_example.tex`, `skills/job-scraper/search-queries.md`,
+  and `skills/job-application-assistant/{01,02,04,05,07}.md` — note `cv/main_example.tex`
   is force-tracked (`!cv/main_example.tex`) and `/setup` writes real CV data into it, which is
   easy to miss. Mitigation: `.githooks/pre-commit` **blocks** committing any of these (enable
   with `git config core.hooksPath .githooks`), plus a corrected manual grep and the complete

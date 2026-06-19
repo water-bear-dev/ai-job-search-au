@@ -38,10 +38,10 @@ Before doing anything, show the user precisely what will be wiped.
 
 Read the current state of these files and report whether each has content or is already empty:
 
-- `.claude/skills/job-application-assistant/01-candidate-profile.md`
-- `.claude/skills/job-application-assistant/02-behavioral-profile.md`
-- `.claude/skills/job-application-assistant/05-cv-templates.md` *(profile statements section only — framework structure is preserved)*
-- `.claude/skills/job-application-assistant/07-interview-prep.md` *(STAR examples and STAR candidates sections only — framework structure is preserved)*
+- `skills/job-application-assistant/01-candidate-profile.md`
+- `skills/job-application-assistant/02-behavioral-profile.md`
+- `skills/job-application-assistant/05-cv-templates.md` *(profile statements section only — framework structure is preserved)*
+- `skills/job-application-assistant/07-interview-prep.md` *(STAR examples and STAR candidates sections only — framework structure is preserved)*
 
 Present as:
 
@@ -186,7 +186,7 @@ Leave all other content in `07-interview-prep.md` intact (STAR format explanatio
 
 ### Documents reset
 
-For each non-empty document subfolder, delete all files within it using Bash `rm`. Do not delete the folder itself, and do not delete `documents/README.md`.
+For each non-empty document subfolder, delete all files within it using a shell command (`rm`). Do not delete the folder itself, and do not delete `documents/README.md`.
 
 ```bash
 rm -f documents/cv/*

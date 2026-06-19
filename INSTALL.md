@@ -6,16 +6,21 @@ Everything you need to run AI Job Search AU. Most steps are one-time.
 
 | Tool | Required? | For |
 |------|-----------|-----|
-| [Claude Code](https://claude.com/claude-code) | **Yes** | Running the whole workflow |
+| AI agent (pick one) | **Yes** | Running the workflow — [Claude Code](https://claude.com/claude-code), [Cursor](https://cursor.com), or [Antigravity](https://antigravity.google/) / `agy` CLI |
 | Python 3.10+ | **Yes** | `seek-search` (SEEK discovery) + salary tool |
 | LaTeX (TinyTeX / MacTeX / MiKTeX / TeX Live) | **Yes, for `/apply`** | Compiling CV + cover-letter PDFs |
 | [`gh`](https://cli.github.com/) (GitHub CLI) | Optional | Forking/cloning |
 
 No Node/Bun needed (the old Danish CLIs that required Bun have been removed).
 
+After clone, run **`./scripts/install-adapters.sh`** to wire up platform skill symlinks. See
+[PLATFORMS.md](PLATFORMS.md).
+
 ---
 
-## 1. Claude Code
+## 1. AI agent (pick one)
+
+### Claude Code
 
 ```bash
 npm install -g @anthropic-ai/claude-code
@@ -23,6 +28,18 @@ npm install -g @anthropic-ai/claude-code
 
 You'll need a Claude Pro/Max/Team subscription or an Anthropic API key. Docs:
 <https://docs.anthropic.com/en/docs/claude-code>.
+
+### Cursor
+
+Install from <https://cursor.com>. Open this repo — skills in `.cursor/skills/` and the
+always-on rule in `.cursor/rules/job-search-core.mdc` activate automatically.
+
+### Antigravity / Antigravity CLI
+
+Install from <https://antigravity.google/>. Project skills live in `.agents/skills/`. If the
+CLI does not discover them, run `./scripts/install-adapters.sh --antigravity-cli-global`.
+
+See [PLATFORMS.md](PLATFORMS.md) for invocation details per tool.
 
 ## 2. Python 3.10+
 
@@ -127,10 +144,10 @@ and cover letters, the tracker CSV, and salary data.
 **The exceptions:** these files are **tracked** but get filled with your real name, contact
 details, history, and search targets by `/setup`:
 
-- `CLAUDE.md`
+- `AGENTS.md` (also `CLAUDE.md` symlink)
 - `cv/main_example.tex`
-- `.claude/skills/job-scraper/search-queries.md`
-- `.claude/skills/job-application-assistant/01-candidate-profile.md` (and `02-behavioral-profile`,
+- `skills/job-scraper/search-queries.md`
+- `skills/job-application-assistant/01-candidate-profile.md` (and `02-behavioral-profile`,
   `04-job-evaluation`, `05-cv-templates`, `07-interview-prep`)
 
 After `/setup` fills them, they show up as normal modified files. If your fork is public,
@@ -149,7 +166,7 @@ placeholder *templates* with no real data? Bypass with `git commit --no-verify`.
 
 ### Other options
 
-1. **Never commit them:** `git update-index --skip-worktree CLAUDE.md` (repeat for each file
+1. **Never commit them:** `git update-index --skip-worktree AGENTS.md` (repeat for each file
    above) so git ignores your local changes to them.
 2. **Belt-and-braces:** keep your filled-in copy in a *private* repo or local-only folder,
    and only push template/placeholder versions publicly.
@@ -158,6 +175,6 @@ A manual pre-push safety check (covers the full set):
 
 ```bash
 git diff --cached --name-only \
-  | grep -E 'CLAUDE\.md|cv/main_example\.tex|search-queries\.md|job-application-assistant/(01|02|04|05|07)' \
+  | grep -E 'AGENTS\.md|CLAUDE\.md|cv/main_example\.tex|search-queries\.md|job-application-assistant/(01|02|04|05|07)' \
   && echo "STOP: personal profile staged — unstage before pushing"
 ```

@@ -17,14 +17,15 @@
 # See INSTALL.md -> "Keeping your data private".
 
 profile_files="
+AGENTS.md
 CLAUDE.md
 cv/main_example.tex
-.claude/skills/job-scraper/search-queries.md
-.claude/skills/job-application-assistant/01-candidate-profile.md
-.claude/skills/job-application-assistant/02-behavioral-profile.md
-.claude/skills/job-application-assistant/04-job-evaluation.md
-.claude/skills/job-application-assistant/05-cv-templates.md
-.claude/skills/job-application-assistant/07-interview-prep.md
+skills/job-scraper/search-queries.md
+skills/job-application-assistant/01-candidate-profile.md
+skills/job-application-assistant/02-behavioral-profile.md
+skills/job-application-assistant/04-job-evaluation.md
+skills/job-application-assistant/05-cv-templates.md
+skills/job-application-assistant/07-interview-prep.md
 "
 
 blocked=""

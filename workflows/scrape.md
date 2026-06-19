@@ -1,14 +1,6 @@
----
-description: Search SEEK (and optionally LinkedIn) for jobs matching your profile and rank by fit. Triggers on /scrape.
----
-
 # /scrape
 
-Invoke the **`job-scraper`** skill to search the Australian job market and rank results
-against the candidate profile.
-
-Use the **Skill tool** to run the skill named `job-scraper`, forwarding the arguments below
-verbatim:
+Read and follow `skills/job-scraper/SKILL.md`, forwarding user arguments verbatim:
 
 ```
 $ARGUMENTS
@@ -22,4 +14,4 @@ Argument handling:
   at-their-own-risk before running it.
 
 Do not duplicate the scraper logic here — the full workflow lives in
-`.claude/skills/job-scraper/SKILL.md`.
+`skills/job-scraper/SKILL.md`.
