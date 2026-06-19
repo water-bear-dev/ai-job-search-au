@@ -13,10 +13,10 @@ Living plan for evolving **AI Job Search AU** beyond the current agent-driven wo
 | SEEK / LinkedIn CLIs | ✅ | `tools/seek-search`, optional `tools/linkedin-search` |
 | Multi-tool agents | ✅ | Canonical `skills/`, `workflows/`, `AGENTS.md`; adapters for Claude Code, Cursor, Antigravity — see [PLATFORMS.md](PLATFORMS.md) |
 | Profile + `/apply` pipeline | ✅ | Fit eval → LaTeX CV/cover letter → reviewer → PDF compile |
-| Job tracker (data) | 📋 Partial | `job_search_tracker.csv` is **designed but not shipped** — gitignored, no template, **not auto-written by `/apply`** |
+| Job tracker (data) | ✅ | `job_search_tracker.example.csv` + gitignored `job_search_tracker.csv` |
 | Scrape dedup | ✅ | `job_scraper/seen_jobs.json` (seen listings, not applications) |
 | Per-application archive | ✅ | `documents/applications/<company>_<role>/` (manual; used by `/setup`) |
-| Job tracker UI | ❌ | None |
+| Job tracker UI | ✅ | `tracker/` — FastAPI + browser UI; see [tracker/README.md](tracker/README.md) |
 
 **Tracker schema today** (from `skills/upskill/SKILL.md`):
 
@@ -67,10 +67,10 @@ tracker/
 
 ### Success criteria
 
-- [ ] User can add a job with title, link, and status without editing CSV manually
-- [ ] Status dropdown reflects `tracker/statuses.json`
-- [ ] Attachment paths open the correct local files when they exist
-- [ ] `/scrape` and `/upskill` still read the same `job_search_tracker.csv` format
+- [x] User can add a job with title, link, and status without editing CSV manually
+- [x] Status dropdown reflects `tracker/statuses.json`
+- [x] Attachment paths open the correct local files when they exist
+- [x] `/scrape` and `/upskill` still read the same `job_search_tracker.csv` format
 
 ### Design note: static HTML + server
 
@@ -174,7 +174,7 @@ Phase 2 depends on Phase 1 only for a better editing experience — technically 
 | Item | Notes |
 |------|-------|
 | Commit multi-tool refactor | Stage and commit `skills/`, `workflows/`, adapters if not yet on `main` |
-| Tracker template in repo | `job_search_tracker.example.csv` + create-on-first-run in UI |
+| Tracker template in repo | ✅ | `job_search_tracker.example.csv` + create-on-first-run in tracker |
 | Unify tracker vs `documents/applications/` | Single source of truth; symlink or copy policy documented |
 | `/apply` status webhook | Manual only today; future: user marks outcome in UI → syncs `outcome.md` |
 | Indeed / other boards | Paste-only; no API path |

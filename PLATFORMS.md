@@ -73,6 +73,7 @@ If project-scoped skills are not picked up by CLI alone, run `./scripts/install-
 
 - Python 3.10+ (SEEK search CLI)
 - LaTeX (only for `/apply` PDF compilation)
+- Optional: `pip install -r tracker/requirements.txt` for the [job tracker UI](tracker/README.md)
 - See [INSTALL.md](INSTALL.md) for details
 
 ## Windows symlink note

@@ -1,0 +1,61 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Job Tracker — AI Job Search AU</title>
+  <link rel="stylesheet" href="/style.css" />
+</head>
+<body>
+  <header>
+    <h1>Job Tracker</h1>
+    <p class="subtitle">Local applications dashboard · <code>job_search_tracker.csv</code></p>
+    <button type="button" id="btn-add" class="primary">Add job</button>
+  </header>
+
+  <main>
+    <div id="message" class="message hidden" role="status"></div>
+    <div class="table-wrap">
+      <table>
+        <thead>
+          <tr>
+            <th>Title</th>
+            <th>Link</th>
+            <th>Status</th>
+            <th>Attachments</th>
+            <th>Notes</th>
+            <th>Actions</th>
+          </tr>
+        </thead>
+        <tbody id="jobs-body">
+          <tr><td colspan="6" class="empty">Loading…</td></tr>
+        </tbody>
+      </table>
+    </div>
+  </main>
+
+  <dialog id="job-dialog">
+    <form id="job-form" method="dialog">
+      <h2 id="dialog-title">Add job</h2>
+      <input type="hidden" id="job-index" value="" />
+
+      <label>Company <input type="text" id="field-company" required /></label>
+      <label>Role <input type="text" id="field-role" required /></label>
+      <label>Job URL <input type="url" id="field-source" placeholder="https://…" /></label>
+      <label>Status
+        <select id="field-status"></select>
+      </label>
+      <label>CV file path <input type="text" id="field-cv" placeholder="cv/main_company.tex" /></label>
+      <label>Cover letter path <input type="text" id="field-cover" placeholder="cover_letters/cover_company_role.tex" /></label>
+      <label>Notes <textarea id="field-notes" rows="3"></textarea></label>
+
+      <div class="dialog-actions">
+        <button type="button" id="btn-cancel">Cancel</button>
+        <button type="submit" class="primary">Save</button>
+      </div>
+    </form>
+  </dialog>
+
+  <script src="/app.js"></script>
+</body>
+</html>

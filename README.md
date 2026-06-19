@@ -79,6 +79,18 @@ See **[INSTALL.md](INSTALL.md)** for prerequisites (Python, LaTeX, your AI tool 
 including a **no-sudo LaTeX setup** that works on locked-down machines. Tool-specific paths:
 **[PLATFORMS.md](PLATFORMS.md)**. Release history: **[CHANGELOG.md](CHANGELOG.md)**.
 
+## Job tracker UI
+
+Local dashboard for `job_search_tracker.csv` (applications, status, attachment links):
+
+```bash
+cd tracker
+pip install -r requirements.txt
+python server.py
+```
+
+Open **http://127.0.0.1:8765**. See [`tracker/README.md`](tracker/README.md). Statuses are configurable in `tracker/statuses.json`.
+
 ## The `seek-search` tool (works standalone too)
 
 ```bash

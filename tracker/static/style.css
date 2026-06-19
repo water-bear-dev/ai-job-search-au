@@ -1,0 +1,223 @@
+:root {
+  --bg: #0f1419;
+  --surface: #1a2332;
+  --border: #2d3a4d;
+  --text: #e7ecf3;
+  --muted: #8b9cb3;
+  --accent: #3b82f6;
+  --accent-hover: #2563eb;
+  --danger: #ef4444;
+  --missing: #6b7280;
+}
+
+* {
+  box-sizing: border-box;
+}
+
+body {
+  margin: 0;
+  font-family: system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
+  background: var(--bg);
+  color: var(--text);
+  line-height: 1.5;
+}
+
+header {
+  padding: 1.5rem 2rem;
+  border-bottom: 1px solid var(--border);
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 1rem;
+}
+
+header h1 {
+  margin: 0;
+  font-size: 1.5rem;
+  flex: 1;
+}
+
+.subtitle {
+  margin: 0;
+  color: var(--muted);
+  font-size: 0.875rem;
+  width: 100%;
+}
+
+main {
+  padding: 1.5rem 2rem;
+  max-width: 1200px;
+  margin: 0 auto;
+}
+
+button {
+  cursor: pointer;
+  border: 1px solid var(--border);
+  background: var(--surface);
+  color: var(--text);
+  padding: 0.5rem 1rem;
+  border-radius: 6px;
+  font-size: 0.875rem;
+}
+
+button.primary {
+  background: var(--accent);
+  border-color: var(--accent);
+  color: #fff;
+}
+
+button.primary:hover {
+  background: var(--accent-hover);
+}
+
+button.danger {
+  color: var(--danger);
+  border-color: var(--danger);
+}
+
+button.small {
+  padding: 0.25rem 0.5rem;
+  font-size: 0.75rem;
+}
+
+.table-wrap {
+  overflow-x: auto;
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  background: var(--surface);
+}
+
+table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 0.875rem;
+}
+
+th,
+td {
+  padding: 0.75rem 1rem;
+  text-align: left;
+  border-bottom: 1px solid var(--border);
+  vertical-align: top;
+}
+
+th {
+  color: var(--muted);
+  font-weight: 600;
+}
+
+tr:last-child td {
+  border-bottom: none;
+}
+
+.empty {
+  text-align: center;
+  color: var(--muted);
+  padding: 2rem !important;
+}
+
+a {
+  color: var(--accent);
+}
+
+.attachments {
+  display: flex;
+  flex-direction: column;
+  gap: 0.25rem;
+}
+
+.attachments .missing {
+  color: var(--missing);
+  font-size: 0.75rem;
+}
+
+.notes-preview {
+  max-width: 200px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  color: var(--muted);
+}
+
+.actions {
+  display: flex;
+  gap: 0.5rem;
+  flex-wrap: wrap;
+}
+
+.message {
+  padding: 0.75rem 1rem;
+  margin-bottom: 1rem;
+  border-radius: 6px;
+  background: #14532d;
+  border: 1px solid #166534;
+}
+
+.message.error {
+  background: #450a0a;
+  border-color: #7f1d1d;
+}
+
+.message.hidden {
+  display: none;
+}
+
+dialog {
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  padding: 0;
+  background: var(--surface);
+  color: var(--text);
+  max-width: 480px;
+  width: 90vw;
+}
+
+dialog::backdrop {
+  background: rgba(0, 0, 0, 0.6);
+}
+
+#job-form {
+  padding: 1.5rem;
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+}
+
+#job-form h2 {
+  margin: 0 0 0.5rem;
+}
+
+#job-form label {
+  display: flex;
+  flex-direction: column;
+  gap: 0.25rem;
+  font-size: 0.875rem;
+  color: var(--muted);
+}
+
+#job-form input,
+#job-form select,
+#job-form textarea {
+  padding: 0.5rem;
+  border: 1px solid var(--border);
+  border-radius: 4px;
+  background: var(--bg);
+  color: var(--text);
+  font: inherit;
+}
+
+.dialog-actions {
+  display: flex;
+  justify-content: flex-end;
+  gap: 0.5rem;
+  margin-top: 0.5rem;
+}
+
+select.status-select {
+  padding: 0.25rem 0.5rem;
+  font-size: 0.75rem;
+  background: var(--bg);
+  color: var(--text);
+  border: 1px solid var(--border);
+  border-radius: 4px;
+}

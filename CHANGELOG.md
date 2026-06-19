@@ -15,6 +15,7 @@ Format based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 - **`agent_handoff.example.md`** — template for session handoff when switching between agents; live `agent_handoff.md` is gitignored
 - **Cursor adapters** — `.cursor/skills/`, command skills (`/setup`, `/apply`, …), `application-reviewer` subagent, `job-search-core` rule
 - **Antigravity adapters** — `.agents/skills/` symlinks and `.agents/workflows/` wrappers
+- **Job tracker UI (Phase 1)** — `tracker/` FastAPI app + static dashboard for `job_search_tracker.csv`; `job_search_tracker.example.csv` template; `tracker/statuses.json`
 
 ### Changed
 

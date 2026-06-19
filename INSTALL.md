@@ -10,6 +10,7 @@ Everything you need to run AI Job Search AU. Most steps are one-time.
 | Python 3.10+ | **Yes** | `seek-search` (SEEK discovery) + salary tool |
 | LaTeX (TinyTeX / MacTeX / MiKTeX / TeX Live) | **Yes, for `/apply`** | Compiling CV + cover-letter PDFs |
 | [`gh`](https://cli.github.com/) (GitHub CLI) | Optional | Forking/cloning |
+| Job tracker UI | Optional | `pip install -r tracker/requirements.txt` — local dashboard only |
 
 No Node/Bun needed (the old Danish CLIs that required Bun have been removed).
 

@@ -1,0 +1,13 @@
+{
+  "default_status": "draft",
+  "statuses": [
+    "draft",
+    "applied",
+    "phone_screen",
+    "interview",
+    "offer",
+    "rejected",
+    "withdrawn",
+    "no_response"
+  ]
+}
