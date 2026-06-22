@@ -102,8 +102,10 @@ reviewer subagent → compile and visually verify both PDFs → present the fini
 `/apply` compiles for you, but to do it by hand:
 
 ```bash
-cd cv && lualatex main_<company>.tex && cd ..
-cd cover_letters && xelatex cover_<company>_<role>.tex && cd ..
+python tools/latex_build.py \
+  --cv cv/<application_folder>/<FullName>_CV.tex \
+  --cover cover_letters/<application_folder>/<FullName>_CoverLetter.tex
+python tools/cleanup_latex.py
 ```
 
 ## Troubleshooting

@@ -91,6 +91,8 @@ python server.py
 
 Open **http://127.0.0.1:8765**. See [`tracker/README.md`](tracker/README.md). Statuses are configurable in `tracker/statuses.json`.
 
+`/apply` auto-adds or updates a row when it generates a CV and cover letter (status `draft` by default).
+
 ## The `seek-search` tool (works standalone too)
 
 ```bash

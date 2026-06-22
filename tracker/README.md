@@ -24,6 +24,8 @@ Open **http://127.0.0.1:8765**
 
 Override port: `TRACKER_PORT=9000 python server.py`
 
+The UI **auto-refreshes** every few seconds when `job_search_tracker.csv` changes (e.g. after `/apply` runs `upsert_application.py`). Keep this server running while you work.
+
 ## First run
 
 If `job_search_tracker.csv` does not exist, the server copies
@@ -32,7 +34,24 @@ If `job_search_tracker.csv` does not exist, the server copies
 ## Configure statuses
 
 Edit [`statuses.json`](statuses.json) — add, remove, or reorder statuses. Restart the server.
-Set `default_status` for new rows.
+Set `default_status` for new rows (used when `/apply` auto-tracks an application).
+
+## Auto-tracking from `/apply`
+
+When `/apply` finishes drafting a CV and cover letter, it runs `tracker/upsert_application.py` to create or update a row keyed by `company` + `role`. File paths, source URL, and fit rating are filled in; status defaults to `default_status` (`draft`).
+
+Manual upsert:
+
+```bash
+python tracker/upsert_application.py \
+  --company "Acme Corp" \
+  --role "Data Engineer" \
+  --cv-file "cv/20260622-AcmeCorp-DataEngineer/Andrew_Pham_CV.tex" \
+  --cover-letter-file "cover_letters/20260622-AcmeCorp-DataEngineer/Andrew_Pham_CoverLetter.tex" \
+  --source "https://www.seek.com.au/job/92686067"
+```
+
+Paths are computed by `tools/application_paths.py` (`<YYYYMMDD>-<companyName>-<position>` folders).
 
 ## Security
 
@@ -55,7 +74,8 @@ fit_rating, notes, cv_file, cover_letter_file, source
 | POST | `/api/jobs` | Create job |
 | PUT | `/api/jobs/{index}` | Update job |
 | DELETE | `/api/jobs/{index}` | Delete job |
-| GET | `/api/statuses` | Status config |
+| GET | `/api/revision` | Data revision (poll to detect CSV changes from `/apply`) |
+| POST | `/api/revision` | Notify hook (called by `upsert_application.py` after writes) |
 | GET | `/api/files?path=...` | Download attachment |
 
 Interactive docs: http://127.0.0.1:8765/api/docs

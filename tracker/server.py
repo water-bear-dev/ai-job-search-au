@@ -24,6 +24,7 @@ from fastapi.staticfiles import StaticFiles
 from pydantic import BaseModel
 
 from csv_store import COLUMNS, REPO_ROOT, TRACKER_DIR, ensure_csv_exists, new_row, read_rows, write_rows
+from revision import bump_revision, get_revision
 
 STATUSES_PATH = TRACKER_DIR / "statuses.json"
 STATIC_DIR = TRACKER_DIR / "static"
@@ -206,6 +207,22 @@ def file_exists(path: str = Query(..., min_length=1)) -> dict[str, Any]:
 def serve_file(path: str = Query(..., min_length=1)) -> FileResponse:
     resolved = resolve_allowed_file(path)
     return FileResponse(resolved, filename=resolved.name)
+
+
+class RevisionResponse(BaseModel):
+    revision: int
+
+
+@app.get("/api/revision")
+def read_revision() -> RevisionResponse:
+    """Revision counter bumped whenever job_search_tracker.csv changes."""
+    return RevisionResponse(revision=get_revision())
+
+
+@app.post("/api/revision", response_model=RevisionResponse)
+async def notify_revision() -> RevisionResponse:
+    """Called by upsert scripts so open tracker tabs reload without waiting for poll."""
+    return RevisionResponse(revision=get_revision())
 
 
 app.mount("/", StaticFiles(directory=STATIC_DIR, html=True), name="static")

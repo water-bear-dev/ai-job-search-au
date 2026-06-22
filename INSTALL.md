@@ -139,8 +139,8 @@ lualatex -interaction=nonstopmode main_example.tex
 ## Keeping your data private
 
 This repo is designed to be forked. The `.gitignore` already keeps these **out** of git:
-your resume and `documents/`, `seen_jobs.json`, all compiled PDFs, generated `cv/main_*.tex`
-and cover letters, the tracker CSV, and salary data.
+your resume and `documents/`, `seen_jobs.json`, all compiled PDFs, generated `cv/*/<FullName>_CV.tex`
+and `cover_letters/*/<FullName>_CoverLetter.tex`, the tracker CSV, and salary data.
 
 **The exceptions:** these files are **tracked** but get filled with your real name, contact
 details, history, and search targets by `/setup`:

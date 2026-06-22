@@ -1,4 +1,6 @@
 let statusesConfig = { default_status: "draft", statuses: [] };
+let lastRevision = 0;
+const REVISION_POLL_MS = 3000;
 
 const $ = (sel) => document.querySelector(sel);
 const jobsBody = $("#jobs-body");
@@ -146,6 +148,29 @@ async function loadJobs() {
   renderJobs(items);
 }
 
+async function pollRevision() {
+  if (dialog.open) return;
+  try {
+    const { revision } = await api("/api/revision");
+    if (revision === lastRevision) return;
+    const hadPrior = lastRevision !== 0;
+    lastRevision = revision;
+    if (hadPrior) {
+      await loadJobs();
+      showMessage("Applications updated");
+    }
+  } catch {
+    /* tracker server not running */
+  }
+}
+
+function startRevisionPolling() {
+  setInterval(pollRevision, REVISION_POLL_MS);
+  document.addEventListener("visibilitychange", () => {
+    if (document.visibilityState === "visible") pollRevision();
+  });
+}
+
 function openAdd() {
   $("#dialog-title").textContent = "Add job";
   $("#job-index").value = "";
@@ -217,7 +242,10 @@ $("#btn-cancel").addEventListener("click", () => dialog.close());
 (async function init() {
   try {
     await loadStatuses();
+    const { revision } = await api("/api/revision");
+    lastRevision = revision;
     await loadJobs();
+    startRevisionPolling();
   } catch (err) {
     jobsBody.innerHTML = `<tr><td colspan="6" class="empty">Failed to load: ${escapeHtml(err.message)}</td></tr>`;
   }

@@ -92,7 +92,7 @@ When `/apply` completes successfully, the tracker updates **without manual entry
 |------|--------|
 | Workflow hook | Extend `workflows/apply.md` Step 6: append or update `job_search_tracker.csv` |
 | Row defaults | `date` = today; `source` = posting URL; `status` = `draft` or `applied` (configurable default in `tracker/statuses.json` or `tracker/config.json`) |
-| File paths | Set `cv_file` / `cover_letter_file` to generated `cv/main_<company>.tex` and `cover_letters/cover_<company>_<role>.tex` (and/or compiled PDF paths) |
+| File paths | Set `cv_file` / `cover_letter_file` to `cv/<YYYYMMDD>-<company>-<role>/<FullName>_CV.tex` and matching cover letter path (via `tools/application_paths.py`) |
 | Optional archive | Copy artifacts into `documents/applications/<company>_<role>/` for `/setup` compatibility |
 | Scraper alignment | Ensure `job-scraper` dedup still matches on `company` + `role` |
 | UI refresh | Phase 1 UI shows new rows immediately after `/apply` (same CSV) |
@@ -108,9 +108,9 @@ When `/apply` completes successfully, the tracker updates **without manual entry
 
 ### Success criteria
 
-- [ ] Running `/apply` on a SEEK URL creates or updates a tracker row with link and attachment paths
-- [ ] `/scrape` skips roles already in the tracker
-- [ ] User can change status later in the Phase 1 UI
+- [x] Running `/apply` on a SEEK URL creates or updates a tracker row with link and attachment paths
+- [x] `/scrape` skips roles already in the tracker
+- [x] User can change status later in the Phase 1 UI
 
 ---
 
