@@ -16,6 +16,12 @@ Format based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 - **Cursor adapters** — `.cursor/skills/`, command skills (`/setup`, `/apply`, …), `application-reviewer` subagent, `job-search-core` rule
 - **Antigravity adapters** — `.agents/skills/` symlinks and `.agents/workflows/` wrappers
 - **Job tracker UI (Phase 1)** — `tracker/` FastAPI app + static dashboard for `job_search_tracker.csv`; `job_search_tracker.example.csv` template; `tracker/statuses.json`
+- **`tools/application_paths.py`** — canonical `YYYYMMDD-CompanyName-Role` folder naming for CV and cover letter outputs
+- **`tools/latex_build.py`** — compile CV (lualatex) and cover letter (xelatex) with build artifacts in per-application `build/` subfolders
+- **`tools/cleanup_latex.py`** — archive loose LaTeX artifacts; optional end-of-day purge of `build/` folders
+- **`scripts/cleanup-latex.sh`** and **`scripts/install-latex-cleanup.sh`** — manual cleanup wrapper and macOS launchd daily job (11 PM)
+- **`tools/migrate_application_folders.py`** — migrate legacy flat `main_<company>.tex` / `cover_<company>_*.tex` files into dated application folders
+- **Tracker auto-sync** — `tracker/upsert_application.py` (called by `/apply`), `tracker/csv_store.py`, `tracker/revision.py`, revision polling API, live UI refresh when the CSV changes
 
 ### Changed
 
@@ -24,9 +30,11 @@ Format based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 - **Workflows** use neutral tool language (shell commands, search/replace edits, reviewer subagent) instead of Claude Code–specific tool names
 - Removed `allowed-tools` from skill frontmatter (Claude-only; ignored by other agents)
 - **`AGENTS.md`** replaces inline-only `CLAUDE.md` as project brain; profile checklist references `AGENTS.md`
-- **Pre-commit hook** blocks `skills/` profile paths and `AGENTS.md` (was `.claude/skills/…` and `CLAUDE.md`)
-- **`.gitignore`** — allow `.agents/skills/` and `.agents/workflows/`; ignore `agent_handoff.md`
-- Updated **README**, **INSTALL**, **SETUP**, **REVIEW_NOTES**, **documents/README** for multi-tool paths
+- **Personal workspace no longer tracked** — `cv/`, `skills/`, and `AGENTS.md` are gitignored; populate locally via `/setup` (`CLAUDE.md` remains a tracked symlink to `AGENTS.md`)
+- **`/apply` output layout** — dated subfolders under `cv/` and `cover_letters/` (e.g. `cv/20260622-AcmeCorp-DataEngineer/Andrew_Pham_CV.tex`) instead of flat `main_<company>.tex` names
+- **Pre-commit hook** — still blocks profile paths for older forks; primary privacy model is now `.gitignore` on the whole personal workspace
+- **`.gitignore`** — personal workspace (`cv/`, `skills/`, `AGENTS.md`), nested application `.tex`, tracker revision log, LaTeX cleanup log; allow `.agents/skills/` and `.agents/workflows/`
+- Updated **README**, **INSTALL**, **SETUP**, **REVIEW_NOTES**, **tracker/README**, **workflows/apply**, **documents/README** for multi-tool paths, application folders, LaTeX build/cleanup, tracker auto-tracking, and gitignored personal workspace
 
 ### Migration
 
@@ -36,7 +44,10 @@ After pulling these changes:
 ./scripts/install-adapters.sh
 git config core.hooksPath .githooks
 cp agent_handoff.example.md agent_handoff.md   # optional, for agent handoff
+/setup                                          # rebuild local cv/, skills/, AGENTS.md if missing
 ```
+
+If you have legacy flat CV/cover letter files, run `python tools/migrate_application_folders.py` once (dry-run first).
 
 ---
 

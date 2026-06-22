@@ -12,7 +12,8 @@ letters, and prep you for interviews.
 > **Multi-tool setup:** see [PLATFORMS.md](PLATFORMS.md). After clone, run
 > `./scripts/install-adapters.sh`.
 
-> This is an Australian adaptation of [MadsLorentzen/ai-job-search](https://github.com/MadsLorentzen/ai-job-search)
+> This is a fork of [RinaldoG/ai-job-search-au](https://github.com/RinaldoG/ai-job-search-au),
+> an Australian adaptation of [MadsLorentzen/ai-job-search](https://github.com/MadsLorentzen/ai-job-search)
 > (a Danish-market framework). The core workflow is the same; the job-discovery layer has
 > been rebuilt for **SEEK** via a zero-dependency CLI (`tools/seek-search`) that adapts the
 > API approach from [qinscode/SeekSpider](https://github.com/qinscode/SeekSpider).
@@ -91,7 +92,43 @@ python server.py
 
 Open **http://127.0.0.1:8765**. See [`tracker/README.md`](tracker/README.md). Statuses are configurable in `tracker/statuses.json`.
 
-`/apply` auto-adds or updates a row when it generates a CV and cover letter (status `draft` by default).
+The dashboard **auto-refreshes** when `job_search_tracker.csv` changes — keep it open while you work. `/apply` calls `tracker/upsert_application.py` to create or update a row when it generates a CV and cover letter (status `draft` by default).
+
+## Application files
+
+`/apply` writes dated, per-role folders (via `tools/application_paths.py`):
+
+```
+cv/20260622-NorthernHealth-AIEngineerAgenticAIAndAdvancedAnalytics/
+  Andrew_Pham_CV.tex
+  Andrew_Pham_CV.pdf
+  build/                    # aux, log, out (gitignored artifacts)
+
+cover_letters/20260622-NorthernHealth-AIEngineerAgenticAIAndAdvancedAnalytics/
+  Andrew_Pham_CoverLetter.tex
+  Andrew_Pham_CoverLetter.pdf
+  build/
+```
+
+Folder names use `<YYYYMMDD>-<CompanySlug>-<RoleSlug>`. Legacy flat `main_<company>.tex` files can be migrated with `python tools/migrate_application_folders.py`.
+
+## Compiling LaTeX
+
+`/apply` compiles for you. To build by hand, use **`tools/latex_build.py`** — it picks **lualatex** for CVs and **xelatex** for cover letters (`cover.cls` needs `fontspec`), runs with `-interaction=nonstopmode`, and keeps build junk in each folder's `build/` subfolder:
+
+```bash
+python tools/latex_build.py \
+  --cv "cv/20260622-AcmeCorp-DataEngineer/Andrew_Pham_CV.tex" \
+  --cover "cover_letters/20260622-AcmeCorp-DataEngineer/Andrew_Pham_CoverLetter.tex"
+```
+
+**Tips:**
+
+- Always pass `-interaction=nonstopmode` if you invoke `lualatex` / `xelatex` directly — moderncv can emit non-fatal warnings that otherwise hang on `?` prompts.
+- moderncv may exit non-zero yet still write a valid PDF; check that the `.pdf` exists.
+- After a clean compile, purge aux/log clutter: `python tools/cleanup_latex.py` (optional daily job: `./scripts/install-latex-cleanup.sh` on macOS).
+
+See [INSTALL.md](INSTALL.md) for LaTeX prerequisites (including a no-sudo TinyTeX setup).
 
 ## The `seek-search` tool (works standalone too)
 
@@ -113,6 +150,10 @@ Zero dependencies (Python 3.10+ stdlib only). Full docs in
 
 **Health check:** SEEK's endpoints are unofficial, so run `./verify.sh` any time to confirm
 search + detail still work (it exits non-zero with a pointer to the fix if SEEK changes shape).
+
+**macOS SSL errors** (`CERTIFICATE_VERIFY_FAILED` from the system Python): run Apple's
+[Install Certificates.command](https://www.python.org/download/mac/tcltk/) for your Python
+install, or use `curl`/`verify.sh` as a workaround until certificates are fixed.
 
 ## Job boards
 
@@ -155,34 +196,37 @@ A **drafter–reviewer** workflow with mandatory PDF verification:
 
 1. **Parse** the posting — a SEEK URL is resolved to its full description via the GraphQL API; other URLs via WebFetch; or paste the text.
 2. **Evaluate fit** against your profile (skills, experience, culture, location, salary).
-3. **Draft** a tailored CV + cover letter in LaTeX.
+3. **Draft** a tailored CV + cover letter in LaTeX under dated application folders (see [Application files](#application-files)).
 4. **Reviewer agent** (fresh context) researches the company and critiques the drafts.
-5. **Revise**, then **compile & visually inspect** both PDFs (lualatex for the CV, xelatex for the cover letter) until the CV is exactly 2 pages with no orphaned headings and the cover letter is exactly 1 page.
-6. **Present** the finished files with a verification checklist.
+5. **Revise**, then **compile & visually inspect** both PDFs (`tools/latex_build.py` — lualatex for the CV, xelatex for the cover letter) until the CV is exactly 2 pages with no orphaned headings and the cover letter is exactly 1 page.
+6. **Upsert** a tracker row and **present** the finished files with a verification checklist.
 
 All claims are checked against your real profile — the system never fabricates skills or experience.
 
 ## Privacy ⚠️
 
-Several files are **tracked by git** but get filled with your personal data by `/setup`
-(name, contact details, employment history, search targets). On a public fork, **don't push
-them.** The full list:
+This repo is meant to be forked publicly. **Your personal data stays local** — `.gitignore`
+keeps it out of git:
 
-- `AGENTS.md` (also `CLAUDE.md` symlink)
-- `cv/main_example.tex`
-- `skills/job-scraper/search-queries.md`
-- `skills/job-application-assistant/{01-candidate-profile, 02-behavioral-profile,
-  04-job-evaluation, 05-cv-templates, 07-interview-prep}.md`
+| Gitignored | What it holds |
+|------------|---------------|
+| `cv/`, `skills/`, `AGENTS.md` | Profile and LaTeX workspace (populated by `/setup`) |
+| `cover_letters/*/*.tex`, nested CV `.tex` | Generated application outputs |
+| `documents/` (except `.gitkeep`), `job_search_tracker.csv` | Supporting files and tracker |
+| `job_scraper/seen_jobs.json`, `*.pdf`, `salary_data.json` | Scrape state, compiled PDFs, salary data |
 
-**Enable the included safety hook once and it blocks committing these automatically:**
+`CLAUDE.md` is a **symlink to `AGENTS.md`** (tracked as a symlink only — safe to push as long
+as you never commit the profile file itself). After `/setup`, your filled-in workspace exists
+only on disk under the paths above.
+
+**Belt-and-braces:** enable the pre-commit hook once — it blocks accidentally staging profile
+files on older forks that still track them:
 
 ```bash
 git config core.hooksPath .githooks
 ```
 
-The `.gitignore` already protects your resume, search results, generated CVs/cover letters,
-the tracker CSV, salary data, and the `documents/` folder. The files above are the exception
-the hook covers. See [INSTALL.md → Keeping your data private](INSTALL.md#keeping-your-data-private).
+See [INSTALL.md → Keeping your data private](INSTALL.md#keeping-your-data-private).
 
 ## Customisation
 
@@ -194,8 +238,10 @@ the hook covers. See [INSTALL.md → Keeping your data private](INSTALL.md#keepi
 
 ## Credits
 
-- **[Mads Lorentzen](https://github.com/MadsLorentzen)** — the original
-  [ai-job-search](https://github.com/MadsLorentzen/ai-job-search) framework this is built on.
+- **[Rinaldo Gagiano](https://github.com/RinaldoG)** — original
+  [ai-job-search-au](https://github.com/RinaldoG/ai-job-search-au) this project is forked from.
+- **[Mads Lorentzen](https://github.com/MadsLorentzen)** — upstream
+  [ai-job-search](https://github.com/MadsLorentzen/ai-job-search) framework (Danish market).
 - **[Mikkel Krogsholm](https://github.com/mikkelkrogsholm)** — the original job-search skill pattern.
 - **[qinscode/SeekSpider](https://github.com/qinscode/SeekSpider)** — the SEEK API approach
   that `tools/seek-search` adapts (reduced here to a single zero-dependency script).

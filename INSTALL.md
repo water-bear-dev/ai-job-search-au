@@ -68,6 +68,10 @@ Both `seek-search` and the optional `linkedin-search` use **only the standard li
 visually checks the PDFs. You can set up your profile and run `/scrape` without LaTeX; you
 only need it for the application step.
 
+For manual compiles, use **`tools/latex_build.py`** (recommended) — it picks the right engine,
+passes `-interaction=nonstopmode`, and keeps aux/log/out in each application folder's
+`build/` subfolder. See [README → Compiling LaTeX](README.md#compiling-latex).
+
 ### Option A — TinyTeX (recommended; **no sudo / admin password needed**)
 
 TinyTeX installs entirely in your home folder. This is the easiest path, especially on
@@ -128,54 +132,70 @@ gh auth login
 
 # Or just the search, as a table:
 python3 tools/seek-search/seek_search.py --keywords "Software Engineer" --where "All Brisbane QLD" --pages 1 --table
+```
 
-# LaTeX works (compile the example CV; should say "Output written on ... (2 pages ...)"):
+**macOS SSL errors** (`CERTIFICATE_VERIFY_FAILED` from the system Python): run Apple's
+[Install Certificates.command](https://www.python.org/download/mac/tcltk/) for your Python
+install, or rely on `./verify.sh` (uses `curl`) until certificates are fixed.
+
+**LaTeX** (after `/setup` has created your local `cv/` workspace):
+
+```bash
+# Quick check — compile the example CV (should say "Output written on ... (2 pages ...)"):
 cd cv
 lualatex -interaction=nonstopmode main_example.tex
+
+# Or use the project build helper (keeps artifacts in build/):
+python tools/latex_build.py cv/main_example.tex
 ```
 
 ---
 
 ## Keeping your data private
 
-This repo is designed to be forked. The `.gitignore` already keeps these **out** of git:
-your resume and `documents/`, `seen_jobs.json`, all compiled PDFs, generated `cv/*/<FullName>_CV.tex`
-and `cover_letters/*/<FullName>_CoverLetter.tex`, the tracker CSV, and salary data.
+This repo is designed to be forked publicly. **Your personal data stays local** —
+`.gitignore` keeps it out of git:
 
-**The exceptions:** these files are **tracked** but get filled with your real name, contact
-details, history, and search targets by `/setup`:
+| Gitignored | What it holds |
+|------------|---------------|
+| `cv/`, `skills/`, `AGENTS.md` | Profile and LaTeX workspace (populated by `/setup`) |
+| `cover_letters/*/*.tex`, nested CV `.tex` | Generated application outputs |
+| `documents/` (except `.gitkeep`), `job_search_tracker.csv` | Supporting files and tracker |
+| `job_scraper/seen_jobs.json`, `*.pdf`, `salary_data.json` | Scrape state, compiled PDFs, salary data |
 
-- `AGENTS.md` (also `CLAUDE.md` symlink)
-- `cv/main_example.tex`
-- `skills/job-scraper/search-queries.md`
-- `skills/job-application-assistant/01-candidate-profile.md` (and `02-behavioral-profile`,
-  `04-job-evaluation`, `05-cv-templates`, `07-interview-prep`)
+Nothing in the public template repo contains your name, employment history, or applications.
+After clone, run `/setup` to build your local workspace under those paths.
 
-After `/setup` fills them, they show up as normal modified files. If your fork is public,
-**don't `git push` them.**
+`CLAUDE.md` is a **symlink to `AGENTS.md`** (tracked as a symlink only — safe to push as long
+as you never commit the profile file itself).
 
-### Recommended: enable the safety hook (one command)
+### Recommended: enable the pre-commit hook
 
-The repo ships a `pre-commit` hook that **blocks** any commit staging the files above:
+The repo ships a hook that blocks accidentally staging profile files — useful on **older
+forks** that still track them, or if you force-add ignored paths:
 
 ```bash
 git config core.hooksPath .githooks
 ```
 
-That's it — git now refuses to commit your filled-in profile. (Intentionally editing the
-placeholder *templates* with no real data? Bypass with `git commit --no-verify`.)
+It refuses commits that stage `AGENTS.md`, `cv/main_example.tex`, filled-in skill files, etc.
+(Intentionally editing upstream *templates* with no real data? Bypass with
+`git commit --no-verify`.)
 
 ### Other options
 
-1. **Never commit them:** `git update-index --skip-worktree AGENTS.md` (repeat for each file
-   above) so git ignores your local changes to them.
-2. **Belt-and-braces:** keep your filled-in copy in a *private* repo or local-only folder,
-   and only push template/placeholder versions publicly.
+1. **Private fork:** keep the repo private, or use a separate private clone for your filled-in
+   workspace.
+2. **Skip-worktree on legacy tracked files:** if your fork still tracks profile paths from
+   before the gitignore change, run `git update-index --skip-worktree <file>` on each so git
+   ignores local changes.
 
-A manual pre-push safety check (covers the full set):
+Manual pre-push check (legacy tracked paths):
 
 ```bash
 git diff --cached --name-only \
   | grep -E 'AGENTS\.md|CLAUDE\.md|cv/main_example\.tex|search-queries\.md|job-application-assistant/(01|02|04|05|07)' \
   && echo "STOP: personal profile staged — unstage before pushing"
 ```
+
+See also [README → Privacy](README.md#privacy-).
