@@ -24,18 +24,14 @@ letters, and prep you for interviews.
 A structured workflow that turns an AI coding agent into a full job-application assistant:
 
 ```
-/setup            /scrape                 /apply <seek-url | text>
-  |                  |                         |
-  v                  v                         v
-Fill in your     Search SEEK              Fetch full posting
-profile          (seek-search CLI)        Evaluate fit -> score
-  |                  |                         |
-  v                  v                         v
-Profile files    Ranked shortlist         Draft CV + cover letter (LaTeX)
-ready            by fit                    -> reviewer agent critiques
-                     |                        -> revise -> compile PDFs
-                     v                         |
-                 Pick one -> /apply       Finished PDFs to review & submit
+/setup            /scrape (optional)      /evaluate <url | text>     /apply <url | text>
+  |                  |                         |                        |
+  v                  v                         v                        v
+Fill profile     Search SEEK              Fit score only          Parse -> fit -> draft
+                 Rank by fit              (no documents)          CV + cover (LaTeX)
+                     |                                              -> reviewer -> PDFs
+                     v                                              -> applied_jobs/
+                 Pick URL -> /apply or /evaluate
 ```
 
 **It tailors and reviews; it does not auto-submit.** You get finished, layout-verified
@@ -78,25 +74,156 @@ git config core.hooksPath .githooks
 
 **`/scrape` is optional.** `/apply` and `/evaluate` work standalone from any job link or pasted description.
 
+**Full walkthrough:** [How to use](#how-to-use)
+
 See **[INSTALL.md](INSTALL.md)** for prerequisites (Python, LaTeX, your AI tool of choice) —
 including a **no-sudo LaTeX setup** that works on locked-down machines. Tool-specific paths:
 **[PLATFORMS.md](PLATFORMS.md)**. Release history: **[CHANGELOG.md](CHANGELOG.md)**.
 
-## Job tracker UI
+## How to use
 
-Local dashboard for `job_search_tracker.csv` (applications, status, attachment links):
+Open this repo in **Cursor**, **Claude Code**, or **Antigravity** and run commands in chat (type `/apply`, `/evaluate`, etc.). The agent follows workflows in `workflows/` and writes files on your machine.
+
+### 1. One-time setup
 
 ```bash
-cd tracker
-pip install -r requirements.txt
-python server.py
+./scripts/install-adapters.sh
+git config core.hooksPath .githooks
 ```
 
-Open **http://127.0.0.1:8765**. See [`tracker/README.md`](tracker/README.md). Statuses are configurable in `tracker/statuses.json`.
+Then in your AI agent:
 
-The dashboard **auto-refreshes** when `job_search_tracker.csv` changes — keep it open while you work. `/apply` calls `tracker/upsert_application.py` to create or update a row when it generates a CV and cover letter (status `draft` by default).
+```text
+/setup
+```
 
-Today the tracker is **read/edit only** — it does not run `/apply`, `/evaluate`, or `/scrape` yet. See [Implementation roadmap](#implementation-roadmap) for the plan to extend it into a local control panel.
+Point the agent at your CV in `documents/cv/`, paste a resume, or answer its questions. `/setup` fills `AGENTS.md`, `skills/`, and `cv/main_example.tex` locally (all gitignored — never pushed).
+
+You need **LaTeX** only when you run `/apply` (see [INSTALL.md](INSTALL.md)).
+
+### 2. Apply to a job (main workflow)
+
+You do **not** need `/scrape` first. Paste a SEEK URL, any job link, or the full posting text.
+
+**Option A — job URL (SEEK, LinkedIn, etc.):**
+
+```text
+/apply https://www.seek.com.au/job/92686067
+```
+
+**Option B — pasted posting** (Indeed, company careers page, or when URL fetch fails):
+
+```text
+/apply
+
+Company: Northern Health
+Role: AI Engineer (Agentic AI)
+Location: Melbourne VIC
+URL: https://www.seek.com.au/job/92686067
+
+---
+<paste full job description here>
+```
+
+The agent will:
+
+1. Parse the posting (`tools/parse_posting.py` — SEEK/LinkedIn URLs fetched automatically)
+2. Score fit against your profile and ask before drafting
+3. Draft a tailored CV + cover letter (LaTeX)
+4. Run a **reviewer agent** to critique the drafts
+5. Compile PDFs (`tools/latex_build.py`) and verify layout (2-page CV, 1-page cover letter)
+6. Add a row to your job tracker (`draft` status)
+
+**You upload the PDFs yourself** — the system does not auto-submit to SEEK or LinkedIn.
+
+Output lands in one folder per application:
+
+```
+applied_jobs/20260622-NorthernHealth-AIEngineerAgenticAIAndAdvancedAnalytics/
+  Andrew_Pham_CV.tex / .pdf
+  Andrew_Pham_CoverLetter.tex / .pdf
+```
+
+(`Andrew_Pham` is your name with underscores — computed by `tools/application_paths.py`.)
+
+### 3. Check fit first (`/evaluate`)
+
+Not sure you want to spend time on a tailored CV? Run fit-only:
+
+```text
+/evaluate https://www.seek.com.au/job/92686067
+```
+
+Same URL or paste format as `/apply`. You get a fit score and gaps — **no** LaTeX files. If it looks good:
+
+```text
+/apply https://www.seek.com.au/job/92686067
+```
+
+### 4. Discover roles (`/scrape`) — optional
+
+Search SEEK (and optionally LinkedIn) against your profile and rank results:
+
+```text
+/scrape
+```
+
+Pick a listing from the shortlist, then `/apply` with its URL. Scrape state is stored in `job_scraper/seen_jobs.json` (gitignored) so repeat runs skip old listings.
+
+### 5. Track applications (tracker UI)
+
+Keep a local dashboard open while you work:
+
+```bash
+cd tracker && pip install -r requirements.txt && python server.py
+```
+
+Open **http://127.0.0.1:8765** — view/edit status, notes, and attachment links. The UI **auto-refreshes** when `/apply` updates `job_search_tracker.csv`. Statuses are editable in `tracker/statuses.json`.
+
+The tracker is read/edit only today; it does not run agent commands yet. See [Implementation roadmap](#implementation-roadmap). Details: [`tracker/README.md`](tracker/README.md).
+
+### 6. Commands reference
+
+| Command | When to use |
+|---------|-------------|
+| `/setup` | First time — build your profile |
+| `/evaluate <url-or-text>` | Fit check only, no documents |
+| `/apply <url-or-text>` | Full application — CV + cover letter + PDFs |
+| `/scrape` | Optional — find new roles on SEEK |
+| `/expand` | Enrich profile from GitHub, portfolio, etc. |
+| `/upskill` | Skill gaps vs tracked jobs → learning plan |
+| `/reset` | Wipe profile and start over |
+
+### 7. CLI tools (without the agent)
+
+Useful for debugging or scripting:
+
+```bash
+# Normalize a URL or paste (what /apply uses in Step 0)
+python tools/parse_posting.py "https://www.seek.com.au/job/92686067"
+python tools/parse_posting.py --text "Company: Acme\nRole: Engineer\n\n---\nDescription..."
+
+# SEEK search / full job description
+python3 tools/seek-search/seek_search.py --keywords "AI Engineer" --where "All Melbourne VIC" --table
+python3 tools/seek-search/seek_search.py --detail https://www.seek.com.au/job/92686067
+
+# Recompile PDFs after hand-editing .tex
+python tools/latex_build.py \
+  --cv applied_jobs/20260622-AcmeCorp-DataEngineer/Andrew_Pham_CV.tex \
+  --cover applied_jobs/20260622-AcmeCorp-DataEngineer/Andrew_Pham_CoverLetter.tex
+
+# Move legacy cv/<folder>/ + cover_letters/<folder>/ into applied_jobs/
+python tools/migrate_application_folders.py --dry-run
+
+# Health check (SEEK APIs + parse_posting)
+./verify.sh
+```
+
+Legacy applications may still live under `cv/<folder>/` and `cover_letters/<folder>/`. New `/apply` runs use **`applied_jobs/`** only.
+
+## Job tracker UI
+
+> **Summary:** `cd tracker && python server.py` → http://127.0.0.1:8765. See [How to use §5](#5-track-applications-tracker-ui).
 
 ## Implementation roadmap
 
@@ -113,6 +240,7 @@ High-level plan for evolving the repo. Full tracker history and Phase 1–3 deta
 | Job tracker UI (local CSV dashboard) | Done |
 | `/apply` auto-upsert to tracker + live UI refresh | Done |
 | Dated application folders + `latex_build.py` | Done |
+| Cover letter font symlink for `applied_jobs/` compiles | Done |
 
 ### Agent commands vs scripts
 
@@ -154,24 +282,11 @@ When application count grows:
 
 Contributions welcome on any phase — comment in issues or PRs referencing [SYSTEM_ROADMAP.md](SYSTEM_ROADMAP.md).
 
-## Application files
+## Application files & LaTeX
 
-`/apply` writes dated, per-role folders under **`applied_jobs/`** (via `tools/application_paths.py`). CV and cover letter for each application live in the **same folder**:
+`/apply` writes one dated folder per role under **`applied_jobs/`** (gitignored). CV and cover letter share the same folder — see [How to use §2](#2-apply-to-a-job-main-workflow).
 
-```
-applied_jobs/20260622-NorthernHealth-AIEngineerAgenticAIAndAdvancedAnalytics/
-  Andrew_Pham_CV.tex
-  Andrew_Pham_CV.pdf
-  Andrew_Pham_CoverLetter.tex
-  Andrew_Pham_CoverLetter.pdf
-  build/                    # aux, log, out (gitignored artifacts)
-```
-
-Folder names use `<YYYYMMDD>-<CompanySlug>-<RoleSlug>`. Legacy split paths under `cv/<folder>/` and `cover_letters/<folder>/` still work; consolidate with `python tools/migrate_application_folders.py`.
-
-## Compiling LaTeX
-
-`/apply` compiles for you. To build by hand, use **`tools/latex_build.py`** — it picks **lualatex** for CVs and **xelatex** for cover letters (`cover.cls` needs `fontspec`), runs with `-interaction=nonstopmode`, and keeps build junk in each folder's `build/` subfolder:
+`/apply` compiles for you. To rebuild PDFs by hand after editing `.tex` files:
 
 ```bash
 python tools/latex_build.py \
@@ -181,6 +296,7 @@ python tools/latex_build.py \
 
 **Tips:**
 
+- Cover letters under `applied_jobs/` use `\documentclass{../../cover_letters/cover}`. `cover.cls` loads fonts from `OpenFonts/` relative to the compile directory — `latex_build.py` creates a symlink to `cover_letters/OpenFonts` automatically. If you compile with raw `xelatex` and the PDF shows only bullets (no header or body), create the symlink manually: `ln -sf ../../cover_letters/OpenFonts OpenFonts` in the application folder, then recompile.
 - Always pass `-interaction=nonstopmode` if you invoke `lualatex` / `xelatex` directly — moderncv can emit non-fatal warnings that otherwise hang on `?` prompts.
 - moderncv may exit non-zero yet still write a valid PDF; check that the `.pdf` exists.
 - After a clean compile, purge aux/log clutter: `python tools/cleanup_latex.py` (optional daily job: `./scripts/install-latex-cleanup.sh` on macOS).
@@ -202,8 +318,7 @@ python3 seek_search.py --keywords "Senior Full Stack Engineer" --where "All Aust
 python3 seek_search.py --detail https://www.seek.com.au/job/12345678
 ```
 
-Zero dependencies (Python 3.10+ stdlib only). Full docs in
-[`tools/seek-search/README.md`](tools/seek-search/README.md).
+See [`tools/seek-search/README.md`](tools/seek-search/README.md) for full CLI docs. Also covered in [How to use §7](#7-cli-tools-without-the-agent).
 
 **Health check:** SEEK's endpoints are unofficial, so run `./verify.sh` any time to confirm
 search + detail still work (it exits non-zero with a pointer to the fix if SEEK changes shape).
@@ -236,46 +351,7 @@ python3 linkedin_search.py --keywords "AI Engineer" --where "Brisbane, Queenslan
 See [`tools/linkedin-search/README.md`](tools/linkedin-search/README.md) for the full warning
 and options. If in doubt, don't use it — paste LinkedIn postings into `/apply` manually.
 
-## Apply from a link or paste
-
-`/apply` and `/evaluate` accept a **job URL** or **structured pasted text**. Input is normalized by `tools/parse_posting.py` (SEEK/LinkedIn URLs are fetched automatically; other URLs trigger a WebFetch step).
-
-**From a link:**
-
-```text
-/apply https://www.seek.com.au/job/92686067
-/evaluate https://www.linkedin.com/jobs/view/1234567890
-```
-
-**From pasted text** (use this for Indeed, company career pages, or when URL fetch fails):
-
-```text
-/apply
-
-Company: Northern Health
-Role: AI Engineer (Agentic AI)
-Location: Melbourne VIC
-URL: https://www.seek.com.au/job/92686067
-
----
-<paste full job description here>
-```
-
-Run `/evaluate` with the same input for a **fit score only** (no CV or cover letter).
-
-## Commands
-
-| Command | What it does |
-|---------|--------------|
-| `/setup` | Build your profile — from your CV, a pasted resume, or an interview |
-| `/scrape` | Search SEEK (+ startup boards) and rank results by fit *(optional)* |
-| `/evaluate <url-or-text>` | Fit check only — parse posting, score against profile, no documents |
-| `/apply <url-or-text>` | Evaluate fit -> draft tailored CV + cover letter -> reviewer agent -> compile PDFs |
-| `/expand` | Enrich your profile from public sources you've linked (GitHub, portfolio, etc.) |
-| `/upskill` | Gap analysis between your profile and tracked postings -> learning plan |
-| `/reset` | Wipe profile data to start over (asks for confirmation) |
-
-## How `/apply` works
+## How `/apply` works (under the hood)
 
 A **drafter–reviewer** workflow with mandatory PDF verification:
 

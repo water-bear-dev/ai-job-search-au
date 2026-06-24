@@ -103,6 +103,7 @@ Optional: error messages, job URLs, API responses, or user quotes the next agent
 - **`/scrape` is optional** — `/apply` and `/evaluate` work from a job URL or pasted text
 - Posting input is normalized by `tools/parse_posting.py` (see `workflows/apply.md` Step 0)
 - **`/evaluate`** — fit check only; **`/apply`** — full CV + cover letter pipeline
+- Cover letters compiled from **`applied_jobs/`** need fonts on disk: `latex_build.py` symlinks `OpenFonts` → `cover_letters/OpenFonts`. Symptom if missing: PDF shows only bullet list, no header/body (~7 KB instead of ~20 KB).
 
 ### Paste template for `/apply` or `/evaluate`
 

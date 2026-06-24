@@ -21,12 +21,30 @@ from pathlib import Path
 
 REPO_ROOT = Path(__file__).resolve().parent.parent
 BUILD_DIR_NAME = "build"
+OPENFONTS_LINK_NAME = "OpenFonts"
 
 
 def _engine_for(tex_path: Path) -> str:
     if "cover_letters" in tex_path.parts or tex_path.stem.endswith("_CoverLetter"):
         return "xelatex"
     return "lualatex"
+
+
+def _ensure_openfonts_link(work_dir: Path) -> None:
+    """cover.cls resolves fonts via ``OpenFonts/`` relative to the compile cwd."""
+    if "applied_jobs" not in work_dir.parts:
+        return
+    link = work_dir / OPENFONTS_LINK_NAME
+    target = (REPO_ROOT / "cover_letters" / OPENFONTS_LINK_NAME).resolve()
+    if not target.is_dir():
+        return
+    if link.is_symlink():
+        if link.resolve() == target:
+            return
+        link.unlink()
+    elif link.exists():
+        return
+    link.symlink_to(target, target_is_directory=True)
 
 
 def compile_tex(tex_path: Path, *, runs: int = 1) -> Path:
@@ -39,6 +57,8 @@ def compile_tex(tex_path: Path, *, runs: int = 1) -> Path:
     build_dir.mkdir(parents=True, exist_ok=True)
 
     engine = _engine_for(tex_path)
+    if engine == "xelatex":
+        _ensure_openfonts_link(work_dir)
     cmd = [
         engine,
         "-interaction=nonstopmode",

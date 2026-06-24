@@ -26,6 +26,10 @@ Format based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 - **`/evaluate` command** — fit evaluation only, no CV/cover letter or tracker update
 - **`tools/test_parse_posting.py`** — unit tests for paste parsing and URL routing (no network)
 
+### Fixed
+
+- **Cover letter PDFs from `applied_jobs/`** — `latex_build.py` now symlinks `OpenFonts` → `cover_letters/OpenFonts` before compiling cover letters under `applied_jobs/`. Without this, `cover.cls` macros (`\namesection`, `\lettercontent`, etc.) could not resolve Lato/Raleway fonts and the PDF showed only the bullet list (the only block with an explicit `../../cover_letters/OpenFonts/` path).
+
 ### Changed
 
 - Moved skills from `.claude/skills/` → **`skills/`**
@@ -39,6 +43,8 @@ Format based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 - **`.gitignore`** — personal workspace (`cv/`, `skills/`, `AGENTS.md`), `applied_jobs/`, nested application `.tex`, tracker revision log, LaTeX cleanup log; allow `.agents/skills/` and `.agents/workflows/`
 - Updated **README**, **INSTALL**, **SETUP**, **REVIEW_NOTES**, **tracker/README**, **workflows/apply**, **documents/README** for multi-tool paths, application folders, LaTeX build/cleanup, tracker auto-tracking, and gitignored personal workspace
 - **`workflows/apply.md` Step 0** — uses `parse_posting.py` instead of inline URL routing; README documents URL vs paste examples
+- **`tools/latex_build.py`** — auto-creates `OpenFonts` symlink in `applied_jobs/<folder>/` when compiling cover letters (fonts live under `cover_letters/OpenFonts/`)
+- **`skills/job-application-assistant/06-cover-letter-templates.md`** — documents the `OpenFonts` symlink behaviour for `applied_jobs/` compiles
 
 ### Migration
 
