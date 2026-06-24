@@ -69,12 +69,14 @@ git config core.hooksPath .githooks
 # 3. Build your profile (Claude Code: claude then /setup; Cursor/Antigravity: /setup)
 /setup
 
-# 4. Search SEEK for matching roles
+# 4. (Optional) Search SEEK for matching roles
 /scrape
 
-# 5. Apply to one — paste a SEEK URL directly (full description is auto-fetched)
+# 5. Apply — URL or pasted posting (/scrape not required)
 /apply https://www.seek.com.au/job/12345678
 ```
+
+**`/scrape` is optional.** `/apply` and `/evaluate` work standalone from any job link or pasted description.
 
 See **[INSTALL.md](INSTALL.md)** for prerequisites (Python, LaTeX, your AI tool of choice) —
 including a **no-sudo LaTeX setup** that works on locked-down machines. Tool-specific paths:
@@ -179,12 +181,40 @@ python3 linkedin_search.py --keywords "AI Engineer" --where "Brisbane, Queenslan
 See [`tools/linkedin-search/README.md`](tools/linkedin-search/README.md) for the full warning
 and options. If in doubt, don't use it — paste LinkedIn postings into `/apply` manually.
 
+## Apply from a link or paste
+
+`/apply` and `/evaluate` accept a **job URL** or **structured pasted text**. Input is normalized by `tools/parse_posting.py` (SEEK/LinkedIn URLs are fetched automatically; other URLs trigger a WebFetch step).
+
+**From a link:**
+
+```text
+/apply https://www.seek.com.au/job/92686067
+/evaluate https://www.linkedin.com/jobs/view/1234567890
+```
+
+**From pasted text** (use this for Indeed, company career pages, or when URL fetch fails):
+
+```text
+/apply
+
+Company: Northern Health
+Role: AI Engineer (Agentic AI)
+Location: Melbourne VIC
+URL: https://www.seek.com.au/job/92686067
+
+---
+<paste full job description here>
+```
+
+Run `/evaluate` with the same input for a **fit score only** (no CV or cover letter).
+
 ## Commands
 
 | Command | What it does |
 |---------|--------------|
 | `/setup` | Build your profile — from your CV, a pasted resume, or an interview |
-| `/scrape` | Search SEEK (+ startup boards) and rank results by fit |
+| `/scrape` | Search SEEK (+ startup boards) and rank results by fit *(optional)* |
+| `/evaluate <url-or-text>` | Fit check only — parse posting, score against profile, no documents |
 | `/apply <url-or-text>` | Evaluate fit -> draft tailored CV + cover letter -> reviewer agent -> compile PDFs |
 | `/expand` | Enrich your profile from public sources you've linked (GitHub, portfolio, etc.) |
 | `/upskill` | Gap analysis between your profile and tracked postings -> learning plan |
@@ -194,7 +224,7 @@ and options. If in doubt, don't use it — paste LinkedIn postings into `/apply`
 
 A **drafter–reviewer** workflow with mandatory PDF verification:
 
-1. **Parse** the posting — a SEEK URL is resolved to its full description via the GraphQL API; other URLs via WebFetch; or paste the text.
+1. **Parse** the posting via `tools/parse_posting.py` — SEEK/LinkedIn URLs fetched automatically; other URLs via WebFetch; or structured paste.
 2. **Evaluate fit** against your profile (skills, experience, culture, location, salary).
 3. **Draft** a tailored CV + cover letter in LaTeX under dated application folders (see [Application files](#application-files)).
 4. **Reviewer agent** (fresh context) researches the company and critiques the drafts.

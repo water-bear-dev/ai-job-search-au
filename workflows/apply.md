@@ -14,25 +14,54 @@ Follow these steps **exactly in order**. Do not skip steps.
 
 ## Step 0: Parse Input
 
-- **If `$ARGUMENTS` is a seek.com.au URL (or a bare SEEK job id):** do NOT use WebFetch — SEEK's HTML pages are Cloudflare-blocked (403). Instead fetch the full posting via the SEEK CLI using a **shell command**:
+**MUST** normalize the posting via `tools/parse_posting.py` before fit evaluation. Do not hand-parse URLs or guess company/role from raw text.
+
+### 0a. Run the parser
+
+- **Single-line URL or short text:** pass `$ARGUMENTS` directly:
   ```bash
-  cd tools/seek-search && python3 seek_search.py --detail "<seek url or id>"
+  python tools/parse_posting.py "$ARGUMENTS"
   ```
-  This returns JSON with `title`, `company`, `location`, `salary`, `work_type`, `status`, `recruiter_phone`, `url`, and the full `description`. Use that as the posting content.
-- **If `$ARGUMENTS` is a linkedin.com/jobs URL (or LinkedIn job id):** use the optional LinkedIn CLI (at-your-own-risk; LinkedIn ToS) via a shell command:
+  (Use `--table` only for quick debugging; default output is JSON.)
+
+- **Multi-line pasted posting:** write `$ARGUMENTS` to a temp file, then:
   ```bash
-  cd tools/linkedin-search && python3 linkedin_search.py --detail "<linkedin url or id>"
+  python tools/parse_posting.py --file /tmp/posting.txt
   ```
-  If it fails or you'd rather not, ask the user to paste the description instead.
-- If `$ARGUMENTS` is any other URL, use `WebFetch` to retrieve the job posting content.
-- If it is pasted text, use it directly.
-- Extract: **company name**, **role title**, **department** (if mentioned), and **location**. (Australian postings are in English.)
-- Store **`source_url`** for the tracker:
-  - SEEK `--detail` JSON → use the `url` field (canonical `https://www.seek.com.au/job/<id>`). Do **not** invent or reuse example URLs.
-  - LinkedIn `--detail` → use its job URL field if present, else the original `$ARGUMENTS` URL.
-  - Other WebFetch URL → use `$ARGUMENTS`.
-  - Pasted text only → leave empty; `upsert_application.py` will try `job_scraper/seen_jobs.json` by company + role.
-- Store these for use throughout the workflow.
+
+Parse the JSON stdout. Fields used downstream: `status`, `company`, `role`, `location`, `salary`, `work_type`, `description`, `source_url`, `channel`, `warnings`, `error`.
+
+### 0b. Branch on `status`
+
+| `status` | Action |
+|----------|--------|
+| **`ok`** | Show the user a short summary (company, role, location, channel, description length). Proceed to Step 1. |
+| **`webfetch_required`** | Use `WebFetch` on `source_url` from the JSON. Re-run: `python tools/parse_posting.py --text "<fetched content>" --source-url "<source_url>"`. If still `incomplete`, ask the user for missing fields. |
+| **`incomplete`** | Use AskQuestion to collect missing `company` and/or `role` (see `warnings`). Prepend headers to the description and re-run the parser, or re-run with completed `--text`. |
+| **`error`** | Report `error` to the user and ask them to paste the full posting using the structured template below. |
+
+**Structured paste template** (when URL fetch fails or user pastes manually):
+
+```
+Company: <employer name>
+Role: <job title>
+Location: <city / remote>   # optional
+URL: <posting link>         # optional
+
+---
+<paste full job description here>
+```
+
+### 0c. Store for later steps
+
+From the final `ok` JSON, store:
+
+- **`company`**, **`role`**, **`location`** — folder naming, tracker, cover letter
+- **`description`** — full posting body for fit eval and tailoring
+- **`source_url`** — tracker `source` field (leave empty only if user pasted with no URL)
+- **`channel`** — informational (`SEEK`, `LinkedIn`, `web`, `paste`)
+
+Do not invent or reuse example SEEK job IDs. Canonical SEEK URLs come from the parser's `source_url` field after `--detail` fetch.
 
 ---
 

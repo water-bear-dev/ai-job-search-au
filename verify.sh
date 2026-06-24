@@ -35,5 +35,14 @@ else
     exit 1
 fi
 
+echo "==> parse_posting (SEEK URL -> normalized JSON)"
+if python3 "$ROOT/tools/parse_posting.py" "https://www.seek.com.au/job/$ids" \
+    | python3 -c "import json,sys; d=json.load(sys.stdin); sys.exit(0 if d.get('status')=='ok' and d.get('role') else 1)"; then
+    echo "    parse_posting OK"
+else
+    echo "FAIL: parse_posting did not return status=ok for SEEK job $ids." >&2
+    exit 1
+fi
+
 echo
 echo "All checks passed. SEEK endpoints are working."

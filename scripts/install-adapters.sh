@@ -13,7 +13,7 @@ ROOT="$(cd "$(dirname "$0")/.." && pwd)"
 cd "$ROOT"
 
 SKILLS=(job-application-assistant job-scraper upskill)
-COMMANDS=(setup apply scrape expand reset)
+COMMANDS=(setup apply evaluate scrape expand reset)
 
 link_skill() {
   local platform_dir="$1"
@@ -113,6 +113,7 @@ done
 
 write_claude_command setup "Build your candidate profile from documents, CV, or interview."
 write_claude_command apply "Evaluate fit, draft tailored CV + cover letter, run reviewer, compile PDFs." "- Reviewer subagent: Agent tool, subagent_type general-purpose"
+write_claude_command evaluate "Evaluate job fit only — no CV or cover letter."
 write_claude_command scrape "Search SEEK (and optionally LinkedIn) for jobs matching your profile."
 write_claude_command expand "Enrich your profile from documents and public online presence."
 write_claude_command reset "Reset candidate profile data (destructive; asks for confirmation)."
@@ -120,6 +121,7 @@ write_claude_command reset "Reset candidate profile data (destructive; asks for 
 echo "Writing Cursor command skills..."
 write_cursor_command_skill setup "Build your candidate profile from documents, CV, or interview."
 write_cursor_command_skill apply "Evaluate fit, draft tailored CV + cover letter, run reviewer, compile PDFs." "- Reviewer subagent: Task tool, subagent_type generalPurpose (or delegate to application-reviewer subagent)"
+write_cursor_command_skill evaluate "Evaluate job fit only — no CV or cover letter."
 write_cursor_command_skill scrape "Search SEEK (and optionally LinkedIn) for jobs matching your profile."
 write_cursor_command_skill expand "Enrich your profile from documents and public online presence."
 write_cursor_command_skill reset "Reset candidate profile data (destructive; asks for confirmation)."
@@ -127,6 +129,7 @@ write_cursor_command_skill reset "Reset candidate profile data (destructive; ask
 echo "Writing Antigravity workflow wrappers..."
 write_antigravity_workflow setup "Build your candidate profile from documents, CV, or interview."
 write_antigravity_workflow apply "Evaluate fit, draft tailored CV + cover letter, run reviewer, compile PDFs." "- Reviewer: DefineSubagent with drafts inline in the prompt"
+write_antigravity_workflow evaluate "Evaluate job fit only — no CV or cover letter."
 write_antigravity_workflow scrape "Search SEEK (and optionally LinkedIn) for jobs matching your profile."
 write_antigravity_workflow expand "Enrich your profile from documents and public online presence."
 write_antigravity_workflow reset "Reset candidate profile data (destructive; asks for confirmation)."

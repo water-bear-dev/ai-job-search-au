@@ -132,6 +132,13 @@ gh auth login
 
 # Or just the search, as a table:
 python3 tools/seek-search/seek_search.py --keywords "Software Engineer" --where "All Brisbane QLD" --pages 1 --table
+
+# Posting parser (paste — no network):
+python3 tools/parse_posting.py --text "Company: Test Co
+Role: Engineer
+
+---
+Job description here."
 ```
 
 **macOS SSL errors** (`CERTIFICATE_VERIFY_FAILED` from the system Python): run Apple's

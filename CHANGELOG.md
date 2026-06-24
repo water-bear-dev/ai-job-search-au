@@ -22,6 +22,9 @@ Format based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 - **`scripts/cleanup-latex.sh`** and **`scripts/install-latex-cleanup.sh`** — manual cleanup wrapper and macOS launchd daily job (11 PM)
 - **`tools/migrate_application_folders.py`** — migrate legacy flat `main_<company>.tex` / `cover_<company>_*.tex` files into dated application folders
 - **Tracker auto-sync** — `tracker/upsert_application.py` (called by `/apply`), `tracker/csv_store.py`, `tracker/revision.py`, revision polling API, live UI refresh when the CSV changes
+- **`tools/parse_posting.py`** — normalize job input (SEEK/LinkedIn URL or structured paste) for `/apply` and `/evaluate`
+- **`/evaluate` command** — fit evaluation only, no CV/cover letter or tracker update
+- **`tools/test_parse_posting.py`** — unit tests for paste parsing and URL routing (no network)
 
 ### Changed
 
@@ -35,6 +38,7 @@ Format based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 - **Pre-commit hook** — still blocks profile paths for older forks; primary privacy model is now `.gitignore` on the whole personal workspace
 - **`.gitignore`** — personal workspace (`cv/`, `skills/`, `AGENTS.md`), nested application `.tex`, tracker revision log, LaTeX cleanup log; allow `.agents/skills/` and `.agents/workflows/`
 - Updated **README**, **INSTALL**, **SETUP**, **REVIEW_NOTES**, **tracker/README**, **workflows/apply**, **documents/README** for multi-tool paths, application folders, LaTeX build/cleanup, tracker auto-tracking, and gitignored personal workspace
+- **`workflows/apply.md` Step 0** — uses `parse_posting.py` instead of inline URL routing; README documents URL vs paste examples
 
 ### Migration
 

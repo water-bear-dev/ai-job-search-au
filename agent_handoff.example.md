@@ -100,3 +100,18 @@ Optional: error messages, job URLs, API responses, or user quotes the next agent
 - Multi-tool setup: [PLATFORMS.md](PLATFORMS.md)
 - Roadmap: [SYSTEM_ROADMAP.md](SYSTEM_ROADMAP.md)
 - Privacy: don't commit filled profile files; hook: `git config core.hooksPath .githooks`
+- **`/scrape` is optional** — `/apply` and `/evaluate` work from a job URL or pasted text
+- Posting input is normalized by `tools/parse_posting.py` (see `workflows/apply.md` Step 0)
+- **`/evaluate`** — fit check only; **`/apply`** — full CV + cover letter pipeline
+
+### Paste template for `/apply` or `/evaluate`
+
+```
+Company: <employer>
+Role: <job title>
+Location: <optional>
+URL: <optional posting link>
+
+---
+<paste full job description>
+```
