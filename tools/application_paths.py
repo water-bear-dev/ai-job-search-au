@@ -2,10 +2,14 @@
 """Application folder and file paths for CV / cover letter outputs.
 
 Folder format:
-  <YYYYMMDD>-<companyName>-<position>
+  applied_jobs/<YYYYMMDD>-<companyName>-<position>/
+
+Both CV and cover letter for an application live in the same dated folder.
 
 Example:
-  20260622-NorthernHealth-AIEngineerAgenticAIAndAdvancedAnalytics
+  applied_jobs/20260622-NorthernHealth-AIEngineerAgenticAIAndAdvancedAnalytics/
+    Andrew_Pham_CV.tex
+    Andrew_Pham_CoverLetter.tex
 
 Usage:
   python tools/application_paths.py \\
@@ -25,6 +29,7 @@ from datetime import date, datetime
 from pathlib import Path
 
 REPO_ROOT = Path(__file__).resolve().parent.parent
+APPLIED_JOBS_DIR = "applied_jobs"
 
 
 def pascal_slug(text: str, max_len: int = 48) -> str:
@@ -74,28 +79,28 @@ def application_paths(
     on_date: date | None = None,
 ) -> dict[str, str]:
     folder = build_application_folder(company, role, on_date=on_date)
+    app_dir_rel = f"{APPLIED_JOBS_DIR}/{folder}"
+    app_dir = REPO_ROOT / app_dir_rel
     name = full_name_slug(full_name)
-    cv_dir = REPO_ROOT / "cv" / folder
-    cover_dir = REPO_ROOT / "cover_letters" / folder
-    cv_tex = cv_dir / f"{name}_CV.tex"
-    cover_tex = cover_dir / f"{name}_CoverLetter.tex"
+    cv_tex = app_dir / f"{name}_CV.tex"
+    cover_tex = app_dir / f"{name}_CoverLetter.tex"
     return {
         "application_folder": folder,
-        "cv_dir": str(cv_dir.relative_to(REPO_ROOT)),
-        "cover_letter_dir": str(cover_dir.relative_to(REPO_ROOT)),
+        "applied_jobs_dir": app_dir_rel,
+        "cv_dir": app_dir_rel,
+        "cover_letter_dir": app_dir_rel,
         "cv_tex": str(cv_tex.relative_to(REPO_ROOT)),
         "cover_letter_tex": str(cover_tex.relative_to(REPO_ROOT)),
         "cv_pdf": str(cv_tex.with_suffix(".pdf").relative_to(REPO_ROOT)),
         "cover_letter_pdf": str(cover_tex.with_suffix(".pdf").relative_to(REPO_ROOT)),
         "full_name_slug": name,
-        "cv_build_dir": str((cv_dir / "build").relative_to(REPO_ROOT)),
-        "cover_letter_build_dir": str((cover_dir / "build").relative_to(REPO_ROOT)),
+        "cv_build_dir": str((app_dir / "build").relative_to(REPO_ROOT)),
+        "cover_letter_build_dir": str((app_dir / "build").relative_to(REPO_ROOT)),
     }
 
 
 def ensure_application_dirs(paths: dict[str, str]) -> None:
-    (REPO_ROOT / paths["cv_dir"]).mkdir(parents=True, exist_ok=True)
-    (REPO_ROOT / paths["cover_letter_dir"]).mkdir(parents=True, exist_ok=True)
+    (REPO_ROOT / paths["applied_jobs_dir"]).mkdir(parents=True, exist_ok=True)
 
 
 def main() -> int:
@@ -105,7 +110,7 @@ def main() -> int:
     parser.add_argument("--full-name", default="Andrew Pham")
     parser.add_argument("--date", help="Folder date YYYY-MM-DD or YYYYMMDD (default: today)")
     parser.add_argument("--json", action="store_true")
-    parser.add_argument("--mkdir", action="store_true", help="Create cv/ and cover_letters/ subfolders")
+    parser.add_argument("--mkdir", action="store_true", help="Create applied_jobs/<folder>/")
     args = parser.parse_args()
 
     try:

@@ -166,7 +166,8 @@ This repo is designed to be forked publicly. **Your personal data stays local** 
 | Gitignored | What it holds |
 |------------|---------------|
 | `cv/`, `skills/`, `AGENTS.md` | Profile and LaTeX workspace (populated by `/setup`) |
-| `cover_letters/*/*.tex`, nested CV `.tex` | Generated application outputs |
+| `applied_jobs/` | Generated application CVs and cover letters (per-job folders) |
+| `cover_letters/*/*.tex`, nested CV `.tex` | Legacy application outputs |
 | `documents/` (except `.gitkeep`), `job_search_tracker.csv` | Supporting files and tracker |
 | `job_scraper/seen_jobs.json`, `*.pdf`, `salary_data.json` | Scrape state, compiled PDFs, salary data |
 

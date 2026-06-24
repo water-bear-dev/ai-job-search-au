@@ -103,8 +103,8 @@ reviewer subagent → compile and visually verify both PDFs → present the fini
 
 ```bash
 python tools/latex_build.py \
-  --cv cv/<application_folder>/<FullName>_CV.tex \
-  --cover cover_letters/<application_folder>/<FullName>_CoverLetter.tex
+  --cv applied_jobs/<application_folder>/<FullName>_CV.tex \
+  --cover applied_jobs/<application_folder>/<FullName>_CoverLetter.tex
 python tools/cleanup_latex.py
 ```
 

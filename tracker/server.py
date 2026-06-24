@@ -30,6 +30,7 @@ STATUSES_PATH = TRACKER_DIR / "statuses.json"
 STATIC_DIR = TRACKER_DIR / "static"
 
 FILE_ALLOWLIST_PREFIXES = (
+    "applied_jobs/",
     "cv/",
     "cover_letters/",
     "documents/applications/",

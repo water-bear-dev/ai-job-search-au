@@ -104,8 +104,8 @@ Read only the reference files you do not yet have:
 - `skills/job-application-assistant/06-cover-letter-templates.md`
 
 Also read the most recent existing CV and cover letter files for concrete structural reference (one of each is enough):
-- Read any existing `cv/*/<FullName>_CV.tex` file as a LaTeX template reference (or `cv/main_example.tex` if none exist)
-- Read any existing `cover_letters/*/<FullName>_CoverLetter.tex` file as a template reference
+- Read any existing `applied_jobs/*/<FullName>_CV.tex` (or legacy `cv/*/<FullName>_CV.tex`, or `cv/main_example.tex` if none exist)
+- Read any existing `applied_jobs/*/<FullName>_CoverLetter.tex` (or legacy `cover_letters/*/<FullName>_CoverLetter.tex`)
 
 ### File layout and naming
 
@@ -134,21 +134,21 @@ Use the JSON output for all paths below. Folder format:
 | `<position>` | Role title in PascalCase (alphanumeric words joined) | `AIEngineerAgenticAIAndAdvancedAnalytics` |
 | `<FullName>` | Candidate name; spaces → underscores | `Andrew_Pham` |
 
-Full paths:
+Full paths (both files in the same folder):
 
-- **CV:** `cv/<application_folder>/<FullName>_CV.tex`
-- **Cover letter:** `cover_letters/<application_folder>/<FullName>_CoverLetter.tex`
+- **CV:** `applied_jobs/<application_folder>/<FullName>_CV.tex`
+- **Cover letter:** `applied_jobs/<application_folder>/<FullName>_CoverLetter.tex`
 
-Example folder: `20260622-NorthernHealth-AIEngineerAgenticAIAndAdvancedAnalytics`
+Example: `applied_jobs/20260622-NorthernHealth-AIEngineerAgenticAIAndAdvancedAnalytics/`
 
-### CV (`cv/<application_folder>/<FullName>_CV.tex`)
+### CV (`applied_jobs/<application_folder>/<FullName>_CV.tex`)
 - Always in **English**
 - Follow the moderncv/banking format from `05-cv-templates.md`
 - Tailor the profile statement and experience bullets to the specific role
 - Reframe skills and achievements to match job requirements
 - Keep to 2 pages
 
-### Cover Letter (`cover_letters/<application_folder>/<FullName>_CoverLetter.tex`)
+### Cover Letter (`applied_jobs/<application_folder>/<FullName>_CoverLetter.tex`)
 - Write in **English** (Australian spelling, e.g. "organise", "specialise")
 - Follow the structure from `06-cover-letter-templates.md`
 - Use the `cover.cls` template
@@ -191,11 +191,11 @@ Do NOT read `05-cv-templates.md` or `06-cover-letter-templates.md` — those gov
 ### 3. Drafts to Review
 Both drafts are provided inline below. Do NOT use the Read tool on the draft files — use these exact texts.
 
-<CV_DRAFT file="cv/<APPLICATION_FOLDER>/<FULLNAME>_CV.tex">
+<CV_DRAFT file="applied_jobs/<APPLICATION_FOLDER>/<FULLNAME>_CV.tex">
 <INSERT_CV_DRAFT_HERE>
 </CV_DRAFT>
 
-<COVER_LETTER_DRAFT file="cover_letters/<APPLICATION_FOLDER>/<FULLNAME>_CoverLetter.tex">
+<COVER_LETTER_DRAFT file="applied_jobs/<APPLICATION_FOLDER>/<FULLNAME>_CoverLetter.tex">
 <INSERT_COVER_LETTER_DRAFT_HERE>
 </COVER_LETTER_DRAFT>
 
@@ -212,7 +212,7 @@ Return your feedback in **two parts**:
 A JSON array of concrete edits the drafter can apply directly without re-reading the files. Each edit is an object:
 ```json
 {
-  "file": "cv/<APPLICATION_FOLDER>/<FULLNAME>_CV.tex" | "cover_letters/<APPLICATION_FOLDER>/<FULLNAME>_CoverLetter.tex",
+  "file": "applied_jobs/<APPLICATION_FOLDER>/<FULLNAME>_CV.tex" | "applied_jobs/<APPLICATION_FOLDER>/<FULLNAME>_CoverLetter.tex",
   "old_string": "<exact text currently in the draft>",
   "new_string": "<replacement text>",
   "reason": "<one-line rationale: keyword match / company angle / reframing / style>"
@@ -263,25 +263,25 @@ Use `latex_build.py` so aux/log/out land in each application folder's `build/` s
 
 ```bash
 python tools/latex_build.py \
-  --cv "cv/<application_folder>/<FullName>_CV.tex" \
-  --cover "cover_letters/<application_folder>/<FullName>_CoverLetter.tex"
+  --cv "applied_jobs/<application_folder>/<FullName>_CV.tex" \
+  --cover "applied_jobs/<application_folder>/<FullName>_CoverLetter.tex"
 ```
 
 - CV uses **lualatex**; cover letter uses **xelatex** (cover.cls requires fontspec).
-- Artifacts: `cv/<application_folder>/build/*`, `cover_letters/<application_folder>/build/*`
+- Artifacts: `applied_jobs/<application_folder>/build/*`
 - If either compile fails, fix the error and re-compile until clean.
 
 ### 5b. Inspect layout
 
 Read both PDFs via the Read tool and verify:
 
-**CV (`cv/<application_folder>/<FullName>_CV.pdf`):**
+**CV (`applied_jobs/<application_folder>/<FullName>_CV.pdf`):**
 - [ ] Exactly 2 pages (not 1, not 3)
 - [ ] No orphaned `\cventry` titles — a job/education title line must never sit alone at the bottom of page 1 with its bullets on page 2. This is the most common failure.
 - [ ] Section headings are not isolated at the top of page 2 with only 1-2 lines below
 - [ ] No awkward whitespace gaps
 
-**Cover letter (`cover_letters/<application_folder>/<FullName>_CoverLetter.pdf`):**
+**Cover letter (`applied_jobs/<application_folder>/<FullName>_CoverLetter.pdf`):**
 - [ ] Exactly 1 page
 - [ ] Signature block visible, not cut off or pushed to a second page
 - [ ] Bullet list font matches surrounding body text (both should be Raleway-Medium)
@@ -293,7 +293,7 @@ If the layout has problems, edit the `.tex` files and recompile. Common fixes (s
 - **Orphaned CV entry title:** `\usepackage{needspace}` in preamble, then `\needspace{5\baselineskip}` immediately before the problematic `\cventry`
 - **CV spills to page 3 with only a trailing section:** `\enlargethispage{2-3\baselineskip}` before a late section
 - **Substantial content on page 3:** cut content using **relevance-weighted cutting** (see `05-cv-templates.md` → "Relevance-weighted cutting"). Score each candidate line by (a) relevance to THIS posting's keywords and responsibilities, (b) uniqueness (is it duplicated elsewhere?), (c) narrative load (does the cover letter depend on it?). Cut the lowest-total-score line first, regardless of section. Do NOT mechanically apply a static section-based priority order — an older-role bullet that hits posting keywords is worth more than a recent-role bullet that does not.
-- **Cover letter itemize breaks compile or uses wrong font:** close `\lettercontent{}` before the list, wrap the list in `{\raggedright\fontspec[Path = ../OpenFonts/fonts/raleway/]{Raleway-Medium}\fontsize{11pt}{13pt}\selectfont \begin{itemize}...\end{itemize}\par}` (use `../OpenFonts/...` because the `.tex` lives in a company subfolder)
+- **Cover letter itemize breaks compile or uses wrong font:** close `\lettercontent{}` before the list, wrap the list in `{\raggedright\fontspec[Path = ../../cover_letters/OpenFonts/fonts/raleway/]{Raleway-Medium}\fontsize{11pt}{13pt}\selectfont \begin{itemize}...\end{itemize}\par}` (from `applied_jobs/<folder>/`, fonts and `cover.cls` live under `cover_letters/`)
 - **Cover letter spills to 2 pages:** trim using the same relevance-weighted logic. First cut: sentences that restate what a bullet already said. Second cut: a bullet that does not hit posting keywords. Last resort: a bullet that does hit posting keywords. Never reduce geometry or line spacing.
 
 Do not proceed to Step 6 until both PDFs pass inspection.
@@ -320,8 +320,8 @@ After CV and cover letter PDFs pass inspection (Step 5), upsert a row in `job_se
 python tracker/upsert_application.py \
   --company "<Company Name>" \
   --role "<Role Title>" \
-  --cv-file "cv/<application_folder>/<FullName>_CV.tex" \
-  --cover-letter-file "cover_letters/<application_folder>/<FullName>_CoverLetter.tex" \
+  --cv-file "applied_jobs/<application_folder>/<FullName>_CV.tex" \
+  --cover-letter-file "applied_jobs/<application_folder>/<FullName>_CoverLetter.tex" \
   --source "<source_url from Step 0>" \
   --fit-rating "<strong fit | moderate fit | weak fit from Step 1>" \
   --sector "<sector if known, else omit>" \
@@ -351,8 +351,8 @@ Summarize 3-5 key decisions made to tailor the application:
 
 ### Files Created
 List the files written:
-- `cv/<application_folder>/<FullName>_CV.tex`
-- `cover_letters/<application_folder>/<FullName>_CoverLetter.tex`
+- `applied_jobs/<application_folder>/<FullName>_CV.tex`
+- `applied_jobs/<application_folder>/<FullName>_CoverLetter.tex`
 
 Confirm tracker row was created/updated (Step 6a).
 

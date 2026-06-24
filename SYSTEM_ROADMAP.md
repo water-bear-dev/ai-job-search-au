@@ -92,7 +92,7 @@ When `/apply` completes successfully, the tracker updates **without manual entry
 |------|--------|
 | Workflow hook | Extend `workflows/apply.md` Step 6: append or update `job_search_tracker.csv` |
 | Row defaults | `date` = today; `source` = posting URL; `status` = `draft` or `applied` (configurable default in `tracker/statuses.json` or `tracker/config.json`) |
-| File paths | Set `cv_file` / `cover_letter_file` to `cv/<YYYYMMDD>-<company>-<role>/<FullName>_CV.tex` and matching cover letter path (via `tools/application_paths.py`) |
+| File paths | Set `cv_file` / `cover_letter_file` to `applied_jobs/<YYYYMMDD>-<company>-<role>/<FullName>_CV.tex` and matching cover letter (via `tools/application_paths.py`) |
 | Optional archive | Copy artifacts into `documents/applications/<company>_<role>/` for `/setup` compatibility |
 | Scraper alignment | Ensure `job-scraper` dedup still matches on `company` + `role` |
 | UI refresh | Phase 1 UI shows new rows immediately after `/apply` (same CSV) |

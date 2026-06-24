@@ -33,7 +33,7 @@ Return your feedback in **two parts**:
 **Part A — Structured edits:** A JSON array of concrete edits. Each edit:
 ```json
 {
-  "file": "cv/<APPLICATION_FOLDER>/<FULLNAME>_CV.tex" | "cover_letters/<APPLICATION_FOLDER>/<FULLNAME>_CoverLetter.tex",
+  "file": "applied_jobs/<APPLICATION_FOLDER>/<FULLNAME>_CV.tex" | "applied_jobs/<APPLICATION_FOLDER>/<FULLNAME>_CoverLetter.tex",
   "old_string": "<exact text currently in the draft>",
   "new_string": "<replacement text>",
   "reason": "<one-line rationale>"

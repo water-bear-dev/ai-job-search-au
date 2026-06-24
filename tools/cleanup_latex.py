@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Archive or purge LaTeX build artifacts under cv/ and cover_letters/.
+"""Archive or purge LaTeX build artifacts under applied_jobs/ (and legacy cv/, cover_letters/).
 
 Artifacts live in ``<application_folder>/build/``. Loose ``.aux`` / ``.log`` / ``.out``
 files next to ``.tex`` are moved into ``build/`` on archive.
@@ -30,7 +30,7 @@ ARTIFACT_SUFFIXES = {
     ".fdb_latexmk",
 }
 
-SCAN_ROOTS = ("cv", "cover_letters")
+SCAN_ROOTS = ("applied_jobs", "cv", "cover_letters")
 SKIP_DIR_NAMES = {"OpenFonts", "build", "__pycache__"}
 
 

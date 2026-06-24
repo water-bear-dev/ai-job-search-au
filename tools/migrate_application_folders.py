@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Move legacy flat CV/cover-letter files into dated application folders."""
+"""Move legacy flat or split CV/cover-letter files into applied_jobs/<folder>/."""
 
 from __future__ import annotations
 

@@ -34,9 +34,9 @@ Format based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 - Removed `allowed-tools` from skill frontmatter (Claude-only; ignored by other agents)
 - **`AGENTS.md`** replaces inline-only `CLAUDE.md` as project brain; profile checklist references `AGENTS.md`
 - **Personal workspace no longer tracked** — `cv/`, `skills/`, and `AGENTS.md` are gitignored; populate locally via `/setup` (`CLAUDE.md` remains a tracked symlink to `AGENTS.md`)
-- **`/apply` output layout** — dated subfolders under `cv/` and `cover_letters/` (e.g. `cv/20260622-AcmeCorp-DataEngineer/Andrew_Pham_CV.tex`) instead of flat `main_<company>.tex` names
+- **`/apply` output layout** — dated folders under `applied_jobs/` (CV + cover letter in one folder per application); legacy `cv/<folder>/` + `cover_letters/<folder>/` still supported
 - **Pre-commit hook** — still blocks profile paths for older forks; primary privacy model is now `.gitignore` on the whole personal workspace
-- **`.gitignore`** — personal workspace (`cv/`, `skills/`, `AGENTS.md`), nested application `.tex`, tracker revision log, LaTeX cleanup log; allow `.agents/skills/` and `.agents/workflows/`
+- **`.gitignore`** — personal workspace (`cv/`, `skills/`, `AGENTS.md`), `applied_jobs/`, nested application `.tex`, tracker revision log, LaTeX cleanup log; allow `.agents/skills/` and `.agents/workflows/`
 - Updated **README**, **INSTALL**, **SETUP**, **REVIEW_NOTES**, **tracker/README**, **workflows/apply**, **documents/README** for multi-tool paths, application folders, LaTeX build/cleanup, tracker auto-tracking, and gitignored personal workspace
 - **`workflows/apply.md` Step 0** — uses `parse_posting.py` instead of inline URL routing; README documents URL vs paste examples
 

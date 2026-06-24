@@ -96,23 +96,78 @@ Open **http://127.0.0.1:8765**. See [`tracker/README.md`](tracker/README.md). St
 
 The dashboard **auto-refreshes** when `job_search_tracker.csv` changes — keep it open while you work. `/apply` calls `tracker/upsert_application.py` to create or update a row when it generates a CV and cover letter (status `draft` by default).
 
+Today the tracker is **read/edit only** — it does not run `/apply`, `/evaluate`, or `/scrape` yet. See [Implementation roadmap](#implementation-roadmap) for the plan to extend it into a local control panel.
+
+## Implementation roadmap
+
+High-level plan for evolving the repo. Full tracker history and Phase 1–3 detail:
+**[SYSTEM_ROADMAP.md](SYSTEM_ROADMAP.md)**.
+
+### Shipped
+
+| Area | Status |
+|------|--------|
+| Multi-tool agents (`/setup`, `/apply`, `/evaluate`, `/scrape`, …) | Done |
+| SEEK + optional LinkedIn CLIs | Done |
+| `tools/parse_posting.py` — URL or paste → normalized JSON | Done |
+| Job tracker UI (local CSV dashboard) | Done |
+| `/apply` auto-upsert to tracker + live UI refresh | Done |
+| Dated application folders + `latex_build.py` | Done |
+
+### Agent commands vs scripts
+
+`/apply` and friends are **workflow instructions** for an AI agent (`workflows/*.md`), not standalone binaries. A future UI will combine:
+
+- **Deterministic tools** (no LLM): `parse_posting.py`, `seek_search.py`, `latex_build.py`, `upsert_application.py`
+- **Agent-backed steps** (LLM): fit scoring, CV/cover letter drafting, reviewer critique
+
+The roadmap extends the existing **`tracker/`** FastAPI app rather than building a separate stack. Local-only (`127.0.0.1`), same privacy model as today.
+
+### Planned — workflow UI (extend `tracker/`)
+
+| Phase | Goal | Key deliverables |
+|-------|------|------------------|
+| **UI-1** | Parse & preview | URL/paste form, `POST /api/parse-posting`, posting preview in browser |
+| **UI-2** | Job runner skeleton | `POST /api/runs`, SSE log stream, run status (queued / running / done) |
+| **UI-3** | Evaluate from UI | **Evaluate fit** button → `/evaluate` workflow (parse + fit score, no LaTeX) |
+| **UI-4** | Apply from UI | **Apply** button → full pipeline (draft → compile → tracker upsert); hybrid agent or orchestrator |
+| **UI-5** | Scrape tab | Run SEEK search from UI; evaluate or apply per result row |
+
+**Smallest first slice (UI-1):** paste form + parse API + “copy prompt for Cursor” fallback — no agent automation required.
+
+**Hybrid apply (UI-4):** UI runs parse, compile, and tracker steps; LLM steps via Python orchestrator (Claude/OpenAI API) or by spawning the agent CLI with `workflows/apply.md`.
+
+### Planned — tracker backend (Phase 3 in SYSTEM_ROADMAP)
+
+When application count grows:
+
+- SQLite mirror of `job_search_tracker.csv`
+- Search, filter, kanban by status
+- Run history table for UI job logs
+
+### Out of scope (for now)
+
+- Cloud hosting or multi-user auth
+- Auto-submit to SEEK/LinkedIn
+- Indeed / Wellfound native parsers (paste fallback only)
+- `--fast` skip-fit flag on `/apply`
+
+Contributions welcome on any phase — comment in issues or PRs referencing [SYSTEM_ROADMAP.md](SYSTEM_ROADMAP.md).
+
 ## Application files
 
-`/apply` writes dated, per-role folders (via `tools/application_paths.py`):
+`/apply` writes dated, per-role folders under **`applied_jobs/`** (via `tools/application_paths.py`). CV and cover letter for each application live in the **same folder**:
 
 ```
-cv/20260622-NorthernHealth-AIEngineerAgenticAIAndAdvancedAnalytics/
+applied_jobs/20260622-NorthernHealth-AIEngineerAgenticAIAndAdvancedAnalytics/
   Andrew_Pham_CV.tex
   Andrew_Pham_CV.pdf
-  build/                    # aux, log, out (gitignored artifacts)
-
-cover_letters/20260622-NorthernHealth-AIEngineerAgenticAIAndAdvancedAnalytics/
   Andrew_Pham_CoverLetter.tex
   Andrew_Pham_CoverLetter.pdf
-  build/
+  build/                    # aux, log, out (gitignored artifacts)
 ```
 
-Folder names use `<YYYYMMDD>-<CompanySlug>-<RoleSlug>`. Legacy flat `main_<company>.tex` files can be migrated with `python tools/migrate_application_folders.py`.
+Folder names use `<YYYYMMDD>-<CompanySlug>-<RoleSlug>`. Legacy split paths under `cv/<folder>/` and `cover_letters/<folder>/` still work; consolidate with `python tools/migrate_application_folders.py`.
 
 ## Compiling LaTeX
 
@@ -120,8 +175,8 @@ Folder names use `<YYYYMMDD>-<CompanySlug>-<RoleSlug>`. Legacy flat `main_<compa
 
 ```bash
 python tools/latex_build.py \
-  --cv "cv/20260622-AcmeCorp-DataEngineer/Andrew_Pham_CV.tex" \
-  --cover "cover_letters/20260622-AcmeCorp-DataEngineer/Andrew_Pham_CoverLetter.tex"
+  --cv "applied_jobs/20260622-AcmeCorp-DataEngineer/Andrew_Pham_CV.tex" \
+  --cover "applied_jobs/20260622-AcmeCorp-DataEngineer/Andrew_Pham_CoverLetter.tex"
 ```
 
 **Tips:**
@@ -241,7 +296,8 @@ keeps it out of git:
 | Gitignored | What it holds |
 |------------|---------------|
 | `cv/`, `skills/`, `AGENTS.md` | Profile and LaTeX workspace (populated by `/setup`) |
-| `cover_letters/*/*.tex`, nested CV `.tex` | Generated application outputs |
+| `applied_jobs/` | Generated application CVs and cover letters (per-job folders) |
+| `cover_letters/*/*.tex`, nested CV `.tex` | Legacy application outputs |
 | `documents/` (except `.gitkeep`), `job_search_tracker.csv` | Supporting files and tracker |
 | `job_scraper/seen_jobs.json`, `*.pdf`, `salary_data.json` | Scrape state, compiled PDFs, salary data |
 

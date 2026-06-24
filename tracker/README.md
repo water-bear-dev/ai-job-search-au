@@ -46,8 +46,8 @@ Manual upsert:
 python tracker/upsert_application.py \
   --company "Acme Corp" \
   --role "Data Engineer" \
-  --cv-file "cv/20260622-AcmeCorp-DataEngineer/Andrew_Pham_CV.tex" \
-  --cover-letter-file "cover_letters/20260622-AcmeCorp-DataEngineer/Andrew_Pham_CoverLetter.tex" \
+  --cv-file "applied_jobs/20260622-AcmeCorp-DataEngineer/Andrew_Pham_CV.tex" \
+  --cover-letter-file "applied_jobs/20260622-AcmeCorp-DataEngineer/Andrew_Pham_CoverLetter.tex" \
   --source "https://www.seek.com.au/job/92686067"
 ```
 
@@ -57,7 +57,7 @@ Paths are computed by `tools/application_paths.py` (`<YYYYMMDD>-<companyName>-<p
 
 - Binds **127.0.0.1** only (local machine)
 - No authentication — do not expose to the network
-- File downloads restricted to `cv/`, `cover_letters/`, `documents/applications/`
+- File downloads restricted to `applied_jobs/`, `cv/`, `cover_letters/`, `documents/applications/`
 
 ## CSV columns
 

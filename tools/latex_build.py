@@ -5,10 +5,10 @@ Keeps ``.tex`` and final ``.pdf`` in the application folder; ``.aux``, ``.log``,
 ``.out``, etc. go under ``build/``.
 
 Usage:
-  python tools/latex_build.py cv/20260622-Company-Role/Andrew_Pham_CV.tex
+  python tools/latex_build.py applied_jobs/20260622-Company-Role/Andrew_Pham_CV.tex
   python tools/latex_build.py \\
-    --cv cv/.../Andrew_Pham_CV.tex \\
-    --cover cover_letters/.../Andrew_Pham_CoverLetter.tex
+    --cv applied_jobs/.../Andrew_Pham_CV.tex \\
+    --cover applied_jobs/.../Andrew_Pham_CoverLetter.tex
 """
 
 from __future__ import annotations
@@ -24,7 +24,7 @@ BUILD_DIR_NAME = "build"
 
 
 def _engine_for(tex_path: Path) -> str:
-    if "cover_letters" in tex_path.parts:
+    if "cover_letters" in tex_path.parts or tex_path.stem.endswith("_CoverLetter"):
         return "xelatex"
     return "lualatex"
 
