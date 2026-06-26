@@ -49,6 +49,6 @@ Do **not** draft LaTeX, run the reviewer, compile PDFs, or update the tracker.
 
 End with:
 
-> "To draft a tailored CV and cover letter for this role, run `/apply` with the same URL or pasted posting."
+> "To draft a tailored CV and cover letter for this role, run `/apply` with the same URL or pasted posting. For CV only, run `/applyCVonly`."
 
-If the user wants to proceed immediately without re-pasting, offer to run `/apply` for them using the same input.
+If the user wants to proceed immediately without re-pasting, offer to run `/apply` or `/applyCVonly` for them using the same input.

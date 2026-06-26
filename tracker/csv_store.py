@@ -243,8 +243,8 @@ def upsert_application(
     role = role.strip()
     if not company or not role:
         raise ValueError("company and role are required")
-    if not cv_file.strip() or not cover_letter_file.strip():
-        raise ValueError("cv_file and cover_letter_file are required")
+    if not cv_file.strip():
+        raise ValueError("cv_file is required")
 
     source = resolve_source_url(source, company=company, role=role)
     if not channel.strip() and source:
@@ -274,7 +274,8 @@ def upsert_application(
 
     row = dict(rows[index])
     row["cv_file"] = cv_file.strip()
-    row["cover_letter_file"] = cover_letter_file.strip()
+    if cover_letter_file.strip():
+        row["cover_letter_file"] = cover_letter_file.strip()
     if source.strip():
         row["source"] = source.strip()
     if channel.strip() and not row.get("channel"):

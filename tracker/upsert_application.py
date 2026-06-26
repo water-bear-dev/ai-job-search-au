@@ -25,7 +25,11 @@ def main() -> int:
     parser.add_argument("--company", required=True)
     parser.add_argument("--role", required=True)
     parser.add_argument("--cv-file", required=True)
-    parser.add_argument("--cover-letter-file", required=True)
+    parser.add_argument(
+        "--cover-letter-file",
+        default="",
+        help="Cover letter .tex path (optional for CV-only applies)",
+    )
     parser.add_argument(
         "--source",
         default="",

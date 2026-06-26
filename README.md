@@ -99,7 +99,7 @@ Then in your AI agent:
 
 Point the agent at your CV in `documents/cv/`, paste a resume, or answer its questions. `/setup` fills `AGENTS.md`, `skills/`, and `cv/main_example.tex` locally (all gitignored — never pushed).
 
-You need **LaTeX** only when you run `/apply` (see [INSTALL.md](INSTALL.md)).
+You need **LaTeX** when you run `/apply` or `/applyCVonly` (see [INSTALL.md](INSTALL.md)).
 
 ### 2. Apply to a job (main workflow)
 
@@ -189,6 +189,7 @@ The tracker is read/edit only today; it does not run agent commands yet. See [Im
 | `/setup` | First time — build your profile |
 | `/evaluate <url-or-text>` | Fit check only, no documents |
 | `/apply <url-or-text>` | Full application — CV + cover letter + PDFs |
+| `/applyCVonly <url-or-text>` | CV only — fit, draft, review, PDF (no cover letter) |
 | `/scrape` | Optional — find new roles on SEEK |
 | `/expand` | Enrich profile from GitHub, portfolio, etc. |
 | `/upskill` | Skill gaps vs tracked jobs → learning plan |

@@ -8,7 +8,7 @@ This repo supports **Claude Code**, **Cursor**, and **Google Antigravity / Antig
 |-----------|---------|
 | [`AGENTS.md`](AGENTS.md) | Project brain + candidate profile (`CLAUDE.md` is a symlink) |
 | [`skills/`](skills/) | Skill definitions (job-application-assistant, job-scraper, upskill) |
-| [`workflows/`](workflows/) | Shared workflow bodies for `/setup`, `/apply`, `/scrape`, `/expand`, `/reset` |
+| [`workflows/`](workflows/) | Shared workflow bodies for `/setup`, `/apply`, `/applyCVonly`, `/scrape`, `/expand`, `/reset` |
 
 Platform adapters are thin symlinks + wrappers:
 
@@ -61,7 +61,7 @@ claude
 
 Open this repo in Cursor. Command skills are invoked as `/setup`, `/apply`, `/scrape`, etc. The always-on rule in `.cursor/rules/job-search-core.mdc` points the agent at `AGENTS.md` and `skills/`.
 
-Reviewer subagent for `/apply`: delegate to `application-reviewer` (`.cursor/agents/application-reviewer.md`) or use the Task tool with `subagent_type: generalPurpose`.
+Reviewer subagent for `/apply` and `/applyCVonly`: delegate to `application-reviewer` (`.cursor/agents/application-reviewer.md`) or use the Task tool with `subagent_type: generalPurpose`.
 
 ### Antigravity / Antigravity CLI
 
@@ -72,7 +72,7 @@ If project-scoped skills are not picked up by CLI alone, run `./scripts/install-
 ## Prerequisites (all tools)
 
 - Python 3.10+ (SEEK search CLI)
-- LaTeX (only for `/apply` PDF compilation)
+- LaTeX (for `/apply` and `/applyCVonly` PDF compilation)
 - Optional: `pip install -r tracker/requirements.txt` for the [job tracker UI](tracker/README.md)
 - See [INSTALL.md](INSTALL.md) for details
 
