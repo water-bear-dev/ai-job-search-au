@@ -4,7 +4,7 @@
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1" />
   <title>Job Tracker — AI Job Search AU</title>
-  <link rel="stylesheet" href="/style.css" />
+  <link rel="stylesheet" href="/style.css?v=3" />
 </head>
 <body>
   <header>
@@ -14,13 +14,41 @@
   </header>
 
   <main>
+    <section id="profile" class="profile-section">
+      <details class="profile-card" open>
+        <summary class="profile-summary">
+          <h2>Profile</h2>
+          <span class="profile-hint">From AGENTS.md</span>
+        </summary>
+        <div id="profile-content" class="profile-content">
+          <p class="empty">Loading profile…</p>
+        </div>
+      </details>
+    </section>
+
     <div id="message" class="message hidden" role="status"></div>
+
+    <div class="table-toolbar">
+      <label class="page-size-label">
+        Per page
+        <select id="page-size">
+          <option value="10" selected>10</option>
+          <option value="20">20</option>
+          <option value="50">50</option>
+        </select>
+      </label>
+      <div class="pagination">
+        <button type="button" id="btn-prev" class="small" disabled>Prev</button>
+        <span id="page-info" class="page-info">Page 1 of 1</span>
+        <button type="button" id="btn-next" class="small" disabled>Next</button>
+      </div>
+    </div>
+
     <div class="table-wrap">
       <table>
         <thead>
           <tr>
             <th>Title</th>
-            <th>Link</th>
             <th>Status</th>
             <th>Attachments</th>
             <th>Notes</th>
@@ -28,7 +56,7 @@
           </tr>
         </thead>
         <tbody id="jobs-body">
-          <tr><td colspan="6" class="empty">Loading…</td></tr>
+          <tr><td colspan="5" class="empty">Loading…</td></tr>
         </tbody>
       </table>
     </div>
@@ -50,12 +78,30 @@
       <label>Notes <textarea id="field-notes" rows="3"></textarea></label>
 
       <div class="dialog-actions">
-        <button type="button" id="btn-cancel">Cancel</button>
-        <button type="submit" class="primary">Save</button>
+        <button type="button" id="btn-delete" class="danger hidden">Delete</button>
+        <div class="dialog-actions-right">
+          <button type="button" id="btn-cancel">Cancel</button>
+          <button type="submit" class="primary">Save</button>
+        </div>
       </div>
     </form>
   </dialog>
 
-  <script src="/app.js"></script>
+  <dialog id="link-dialog">
+    <form id="link-form" method="dialog">
+      <h2>Add job link</h2>
+      <input type="hidden" id="link-job-index" value="" />
+      <p id="link-job-label" class="link-job-label"></p>
+      <label>Job URL <input type="url" id="field-link-url" placeholder="https://…" required /></label>
+      <div class="dialog-actions">
+        <div class="dialog-actions-right">
+          <button type="button" id="btn-link-cancel">Cancel</button>
+          <button type="submit" class="primary">Save link</button>
+        </div>
+      </div>
+    </form>
+  </dialog>
+
+  <script src="/app.js?v=3"></script>
 </body>
 </html>

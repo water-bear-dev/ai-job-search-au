@@ -21,9 +21,13 @@ from typing import Any
 from fastapi import FastAPI, HTTPException, Query
 from fastapi.responses import FileResponse
 from fastapi.staticfiles import StaticFiles
-from pydantic import BaseModel
+from starlette.middleware.base import BaseHTTPMiddleware
+from starlette.requests import Request
+from starlette.responses import Response
+from pydantic import BaseModel, Field
 
-from csv_store import COLUMNS, REPO_ROOT, TRACKER_DIR, ensure_csv_exists, new_row, read_rows, write_rows
+from csv_store import COLUMNS, REPO_ROOT, TRACKER_DIR, ensure_csv_exists, new_row, read_rows, touch_modified, write_rows
+from profile import parse_profile
 from revision import bump_revision, get_revision
 
 STATUSES_PATH = TRACKER_DIR / "statuses.json"
@@ -43,6 +47,22 @@ async def lifespan(_app: FastAPI):
 
 
 app = FastAPI(title="AI Job Search — Tracker", docs_url="/api/docs", lifespan=lifespan)
+
+
+class NoCacheStaticMiddleware(BaseHTTPMiddleware):
+    """Prevent stale app.js/style.css when the tracker UI is updated."""
+
+    async def dispatch(self, request: Request, call_next) -> Response:
+        response = await call_next(request)
+        path = request.url.path
+        if path in ("/", "/index.html", "/app.js", "/style.css") or path.endswith(
+            (".js", ".css", ".html")
+        ):
+            response.headers["Cache-Control"] = "no-cache, no-store, must-revalidate"
+        return response
+
+
+app.add_middleware(NoCacheStaticMiddleware)
 
 
 class JobCreate(BaseModel):
@@ -73,7 +93,6 @@ class JobUpdate(BaseModel):
     channel: str | None = None
     contact_person: str | None = None
     fit_rating: str | None = None
-    date: str | None = None
 
 
 class JobWithIndex(BaseModel):
@@ -84,6 +103,16 @@ class JobWithIndex(BaseModel):
 class StatusesConfig(BaseModel):
     default_status: str
     statuses: list[str]
+    labels: dict[str, str] = Field(default_factory=dict)
+
+
+class ProfileSection(BaseModel):
+    title: str
+    items: list[str]
+
+
+class ProfileResponse(BaseModel):
+    sections: list[ProfileSection]
 
 
 def load_statuses() -> StatusesConfig:
@@ -106,7 +135,7 @@ def validate_status(status: str) -> str:
 
 def sort_jobs_newest_first(rows: list[dict]) -> list[tuple[int, dict]]:
     indexed = list(enumerate(rows))
-    indexed.sort(key=lambda item: item[1].get("date", ""), reverse=True)
+    indexed.sort(key=lambda item: item[1].get("created_at", ""), reverse=True)
     return indexed
 
 
@@ -129,8 +158,9 @@ def apply_update(row: dict, update: JobUpdate) -> dict:
     if "status" in data and data["status"] is not None:
         data["status"] = validate_status(data["status"])
     for key, value in data.items():
-        if key in COLUMNS and value is not None:
+        if key in COLUMNS and key not in ("created_at", "modified_at") and value is not None:
             row[key] = value.strip() if isinstance(value, str) else str(value)
+    touch_modified(row)
     return row
 
 
@@ -191,6 +221,12 @@ def delete_job(index: int) -> None:
 @app.get("/api/statuses")
 def get_statuses() -> StatusesConfig:
     return load_statuses()
+
+
+@app.get("/api/profile")
+def get_profile() -> ProfileResponse:
+    data = parse_profile()
+    return ProfileResponse(**data)
 
 
 @app.get("/api/files/exists")

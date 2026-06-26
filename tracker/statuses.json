@@ -9,5 +9,15 @@
     "rejected",
     "withdrawn",
     "no_response"
-  ]
+  ],
+  "labels": {
+    "draft": "Draft",
+    "applied": "Applied",
+    "phone_screen": "Phone screen",
+    "interview": "Interview",
+    "offer": "Offer",
+    "rejected": "Rejected",
+    "withdrawn": "Withdrawn",
+    "no_response": "No response"
+  }
 }

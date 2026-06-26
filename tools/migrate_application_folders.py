@@ -46,7 +46,7 @@ def migrate_tracker(dry_run: bool, full_name: str = "Andrew Pham") -> None:
         cover_old = row.get("cover_letter_file", "")
         if not cv_old and not cover_old:
             continue
-        on_date = parse_folder_date(row.get("date") or None)
+        on_date = parse_folder_date(row.get("created_at") or row.get("date") or None)
         paths = application_paths(
             row["company"],
             row["role"],

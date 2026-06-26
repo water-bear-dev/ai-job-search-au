@@ -75,9 +75,129 @@ button.danger {
   border-color: var(--danger);
 }
 
+button.danger:hover {
+  background: rgba(239, 68, 68, 0.1);
+}
+
 button.small {
   padding: 0.25rem 0.5rem;
   font-size: 0.75rem;
+}
+
+button:disabled {
+  opacity: 0.4;
+  cursor: not-allowed;
+}
+
+/* Profile section */
+.profile-section {
+  margin-bottom: 1.5rem;
+}
+
+.profile-card {
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  background: var(--surface);
+  overflow: hidden;
+}
+
+.profile-summary {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  padding: 0.75rem 1rem;
+  cursor: pointer;
+  list-style: none;
+  user-select: none;
+}
+
+.profile-summary::-webkit-details-marker {
+  display: none;
+}
+
+.profile-summary::before {
+  content: "▸";
+  color: var(--muted);
+  transition: transform 0.15s ease;
+}
+
+.profile-card[open] > .profile-summary::before {
+  transform: rotate(90deg);
+}
+
+.profile-summary h2 {
+  margin: 0;
+  font-size: 1rem;
+  font-weight: 600;
+}
+
+.profile-hint {
+  color: var(--muted);
+  font-size: 0.75rem;
+}
+
+.profile-content {
+  padding: 0 1rem 1rem;
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+  gap: 1rem;
+  border-top: 1px solid var(--border);
+  padding-top: 1rem;
+}
+
+.profile-block h3 {
+  margin: 0 0 0.5rem;
+  font-size: 0.875rem;
+  color: var(--accent);
+}
+
+.profile-block ul {
+  margin: 0;
+  padding-left: 1.25rem;
+  font-size: 0.8125rem;
+  color: var(--muted);
+}
+
+.profile-block li {
+  margin-bottom: 0.25rem;
+}
+
+/* Table toolbar & pagination */
+.table-toolbar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 1rem;
+  margin-bottom: 0.75rem;
+  flex-wrap: wrap;
+}
+
+.page-size-label {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  font-size: 0.875rem;
+  color: var(--muted);
+}
+
+.page-size-label select {
+  padding: 0.25rem 0.5rem;
+  border: 1px solid var(--border);
+  border-radius: 4px;
+  background: var(--surface);
+  color: var(--text);
+  font: inherit;
+}
+
+.pagination {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+}
+
+.page-info {
+  font-size: 0.875rem;
+  color: var(--muted);
 }
 
 .table-wrap {
@@ -118,6 +238,37 @@ tr:last-child td {
 
 a {
   color: var(--accent);
+}
+
+.job-title-link {
+  text-decoration: none;
+}
+
+.job-title-link:hover {
+  text-decoration: underline;
+}
+
+.timestamps {
+  display: flex;
+  flex-direction: column;
+  gap: 0.15rem;
+  margin-top: 0.35rem;
+}
+
+.timestamp {
+  color: var(--muted);
+  font-size: 0.75rem;
+}
+
+.timestamp-updated {
+  color: var(--muted);
+  font-size: 0.75rem;
+  opacity: 0.85;
+}
+
+.btn-add-link {
+  margin-left: 0.25rem;
+  vertical-align: middle;
 }
 
 .attachments {
@@ -176,6 +327,41 @@ dialog::backdrop {
   background: rgba(0, 0, 0, 0.6);
 }
 
+#link-form {
+  padding: 1.5rem;
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+}
+
+#link-form h2 {
+  margin: 0 0 0.25rem;
+}
+
+.link-job-label {
+  margin: 0;
+  font-size: 0.875rem;
+  color: var(--text);
+  font-weight: 600;
+}
+
+#link-form label {
+  display: flex;
+  flex-direction: column;
+  gap: 0.25rem;
+  font-size: 0.875rem;
+  color: var(--muted);
+}
+
+#link-form input {
+  padding: 0.5rem;
+  border: 1px solid var(--border);
+  border-radius: 4px;
+  background: var(--bg);
+  color: var(--text);
+  font: inherit;
+}
+
 #job-form {
   padding: 1.5rem;
   display: flex;
@@ -208,9 +394,20 @@ dialog::backdrop {
 
 .dialog-actions {
   display: flex;
-  justify-content: flex-end;
+  justify-content: space-between;
+  align-items: center;
   gap: 0.5rem;
   margin-top: 0.5rem;
+}
+
+.dialog-actions-right {
+  display: flex;
+  gap: 0.5rem;
+  margin-left: auto;
+}
+
+#btn-delete.hidden {
+  display: none;
 }
 
 select.status-select {
@@ -220,4 +417,8 @@ select.status-select {
   color: var(--text);
   border: 1px solid var(--border);
   border-radius: 4px;
+}
+
+.missing {
+  color: var(--missing);
 }

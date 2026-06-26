@@ -6,7 +6,7 @@ import csv
 import json
 import re
 import shutil
-from datetime import date
+from datetime import datetime
 from pathlib import Path
 
 TRACKER_DIR = Path(__file__).resolve().parent
@@ -17,6 +17,23 @@ SEEN_JOBS_PATH = REPO_ROOT / "job_scraper" / "seen_jobs.json"
 _SEEK_JOB_ID_RE = re.compile(r"seek\.com\.au/job/(\d+)", re.IGNORECASE)
 
 COLUMNS = [
+    "created_at",
+    "company",
+    "sector",
+    "role",
+    "role_type",
+    "channel",
+    "status",
+    "contact_person",
+    "fit_rating",
+    "notes",
+    "cv_file",
+    "cover_letter_file",
+    "source",
+    "modified_at",
+]
+
+LEGACY_COLUMNS = [
     "date",
     "company",
     "sector",
@@ -33,6 +50,26 @@ COLUMNS = [
 ]
 
 
+def now_iso() -> str:
+    return datetime.now().isoformat(timespec="seconds")
+
+
+def _to_datetime(value: str) -> str:
+    value = (value or "").strip()
+    if not value:
+        return now_iso()
+    if "T" in value:
+        return value
+    if len(value) == 10:
+        return f"{value}T00:00:00"
+    return value
+
+
+def touch_modified(row: dict) -> dict:
+    row["modified_at"] = now_iso()
+    return row
+
+
 def ensure_csv_exists() -> None:
     """Create job_search_tracker.csv from example template if missing."""
     if CSV_PATH.exists():
@@ -46,15 +83,33 @@ def _normalize_row(row: dict) -> dict:
     return {col: (row.get(col) or "").strip() for col in COLUMNS}
 
 
+def _migrate_legacy_row(row: dict) -> dict:
+    created = _to_datetime(row.pop("date", "") or row.get("created_at", ""))
+    migrated = {col: "" for col in COLUMNS}
+    migrated["created_at"] = created
+    migrated["modified_at"] = _to_datetime(row.get("modified_at", "") or created)
+    for col in COLUMNS:
+        if col in ("created_at", "modified_at"):
+            continue
+        if col in row:
+            migrated[col] = (row.get(col) or "").strip()
+    return _normalize_row(migrated)
+
+
 def read_rows() -> list[dict]:
     ensure_csv_exists()
     with CSV_PATH.open(newline="", encoding="utf-8") as f:
         reader = csv.DictReader(f)
-        if reader.fieldnames != COLUMNS:
-            raise ValueError(
-                f"Unexpected CSV columns. Expected {COLUMNS}, got {reader.fieldnames}"
-            )
-        return [_normalize_row(row) for row in reader]
+        fieldnames = list(reader.fieldnames or [])
+        if fieldnames == COLUMNS:
+            return [_normalize_row(row) for row in reader]
+        if fieldnames == LEGACY_COLUMNS:
+            rows = [_migrate_legacy_row(dict(row)) for row in reader]
+            write_rows(rows)
+            return rows
+        raise ValueError(
+            f"Unexpected CSV columns. Expected {COLUMNS} or legacy {LEGACY_COLUMNS}, got {fieldnames}"
+        )
 
 
 def write_rows(rows: list[dict]) -> None:
@@ -75,9 +130,11 @@ def empty_row() -> dict:
 
 def new_row(**fields: str) -> dict:
     row = empty_row()
-    row["date"] = date.today().isoformat()
+    ts = now_iso()
+    row["created_at"] = ts
+    row["modified_at"] = ts
     for key, value in fields.items():
-        if key in COLUMNS:
+        if key in COLUMNS and key not in ("created_at", "modified_at"):
             row[key] = (value or "").strip()
     return row
 
@@ -220,7 +277,7 @@ def upsert_application(
     row["cover_letter_file"] = cover_letter_file.strip()
     if source.strip():
         row["source"] = source.strip()
-    if channel.strip() and (index is None or not row.get("channel")):
+    if channel.strip() and not row.get("channel"):
         row["channel"] = channel.strip()
     if fit_rating.strip():
         row["fit_rating"] = fit_rating.strip()
@@ -236,6 +293,7 @@ def upsert_application(
         row["contact_person"] = contact_person.strip()
     if status.strip() and not row["status"]:
         row["status"] = status.strip()
+    touch_modified(row)
     rows[index] = row
     write_rows(rows)
     return "updated", row
