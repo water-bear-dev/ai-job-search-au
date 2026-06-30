@@ -24,11 +24,11 @@ def main() -> int:
     parser = argparse.ArgumentParser(description="Upsert job_search_tracker.csv after /apply")
     parser.add_argument("--company", required=True)
     parser.add_argument("--role", required=True)
-    parser.add_argument("--cv-file", required=True)
+    parser.add_argument("--cv-file", required=True, help="CV .tex or .html path")
     parser.add_argument(
         "--cover-letter-file",
         default="",
-        help="Cover letter .tex path (optional for CV-only applies)",
+        help="Cover letter .tex or .html path (optional for CV-only applies)",
     )
     parser.add_argument(
         "--source",

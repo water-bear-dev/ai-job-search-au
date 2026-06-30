@@ -14,6 +14,8 @@ cd ai-job-search-au
 git config core.hooksPath .githooks
 ```
 
+This also seeds `skills/`, `AGENTS.md`, and `cv/main_example.tex` from tracked placeholders in `examples/profile/` (see `examples/profile/README.md`).
+
 On Windows: `powershell -ExecutionPolicy Bypass -File scripts/install-adapters.ps1`
 
 Or fork on GitHub and clone your fork manually. **Run the install script and `git config`
@@ -60,11 +62,9 @@ Open your AI agent in this repo and run:
 | `07-interview-prep.md` | STAR examples from your experience |
 | `cv/main_example.tex` | Your LaTeX CV with real details |
 | `skills/job-scraper/search-queries.md` | Role keywords + AU locations for `/scrape` |
+| `config/document_output.json` | LaTeX-first vs HTML-first for `/apply` |
 
-> **Privacy:** several of these files (`AGENTS.md`, `cv/main_example.tex`, `search-queries.md`,
-> and the `01/02/04/05/07` profile files) are tracked by git. If your fork is public, don't push
-> your filled-in profile — the `pre-commit` hook from step 1 blocks this automatically once
-> enabled. See [INSTALL.md → Keeping your data private](INSTALL.md#keeping-your-data-private).
+> **Privacy:** `skills/`, `AGENTS.md`, and `cv/` are **gitignored** after `/setup` fills them with your data. Tracked placeholders live in `examples/profile/`; `./scripts/install-adapters.sh` copies them on first run. Cover-letter fonts in `cover_letters/OpenFonts/` are **tracked** — run `./scripts/verify-assets.sh` after clone.
 
 ### Re-running setup
 

@@ -1,0 +1,111 @@
+/* Cover letter — mirrors cover.cls (Lato/Raleway, A4, 2.3cm margins) */
+
+@import url("fonts.css");
+
+:root {
+  --primary: #2b2b2b;
+  --headings: #6a6a6a;
+  --subheadings: #333333;
+  --date: #666666;
+}
+
+@page {
+  size: A4;
+  margin: 2.3cm;
+}
+
+* {
+  box-sizing: border-box;
+}
+
+html, body {
+  margin: 0;
+  padding: 0;
+  color: var(--primary);
+  font-family: "Raleway", sans-serif;
+  font-size: 11pt;
+  line-height: 1.35;
+  -webkit-print-color-adjust: exact;
+  print-color-adjust: exact;
+}
+
+.cover-page {
+  max-width: 100%;
+}
+
+.cover-header {
+  text-align: center;
+  margin-bottom: 1.2rem;
+}
+
+.cover-name {
+  font-family: "Lato", sans-serif;
+  font-weight: 100;
+  font-size: 40pt;
+  line-height: 1.1;
+  color: var(--primary);
+  margin: 0;
+}
+
+.cover-contact {
+  font-family: "Raleway", sans-serif;
+  font-weight: 500;
+  font-size: 11pt;
+  color: var(--headings);
+  margin-top: 0.4rem;
+}
+
+.cover-contact a {
+  color: var(--headings);
+  text-decoration: none;
+}
+
+.cover-date {
+  text-align: right;
+  font-family: "Raleway", sans-serif;
+  font-weight: 500;
+  font-size: 11pt;
+  color: var(--headings);
+  margin-bottom: 1rem;
+}
+
+.cover-body p {
+  font-family: "Raleway", sans-serif;
+  font-weight: 500;
+  font-size: 11pt;
+  margin: 0 0 0.75rem;
+  text-align: left;
+}
+
+.cover-body ul {
+  font-family: "Raleway", sans-serif;
+  font-weight: 500;
+  font-size: 11pt;
+  margin: 0 0 0.75rem 1.2rem;
+  padding: 0;
+}
+
+.cover-body li {
+  margin-bottom: 0.25rem;
+}
+
+.cover-closing {
+  margin-top: 1rem;
+  font-family: "Raleway", sans-serif;
+  font-weight: 500;
+  font-size: 11pt;
+}
+
+.cover-signature {
+  text-align: right;
+  margin-top: 2rem;
+  font-family: "Raleway", sans-serif;
+  font-weight: 500;
+  font-size: 11pt;
+}
+
+@media print {
+  body {
+    width: 210mm;
+  }
+}

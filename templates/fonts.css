@@ -1,0 +1,45 @@
+/* Shared Lato + Raleway faces — same files as cover.cls (cover_letters/OpenFonts/) */
+
+@font-face {
+  font-family: "Lato";
+  src: url("../cover_letters/OpenFonts/fonts/lato/Lato-Lig.ttf") format("truetype");
+  font-weight: 300;
+  font-style: normal;
+}
+@font-face {
+  font-family: "Lato";
+  src: url("../cover_letters/OpenFonts/fonts/lato/Lato-Reg.ttf") format("truetype");
+  font-weight: 400;
+  font-style: normal;
+}
+@font-face {
+  font-family: "Lato";
+  src: url("../cover_letters/OpenFonts/fonts/lato/Lato-Bol.ttf") format("truetype");
+  font-weight: 700;
+  font-style: normal;
+}
+@font-face {
+  font-family: "Lato";
+  src: url("../cover_letters/OpenFonts/fonts/lato/Lato-Hai.ttf") format("truetype");
+  font-weight: 100;
+  font-style: normal;
+}
+
+@font-face {
+  font-family: "Raleway";
+  src: url("../cover_letters/OpenFonts/fonts/raleway/Raleway-ExtraLight.otf") format("opentype");
+  font-weight: 200;
+  font-style: normal;
+}
+@font-face {
+  font-family: "Raleway";
+  src: url("../cover_letters/OpenFonts/fonts/raleway/Raleway-Medium.otf") format("opentype");
+  font-weight: 500;
+  font-style: normal;
+}
+@font-face {
+  font-family: "Raleway";
+  src: url("../cover_letters/OpenFonts/fonts/raleway/Raleway-Bold.otf") format("opentype");
+  font-weight: 700;
+  font-style: normal;
+}

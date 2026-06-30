@@ -7,6 +7,9 @@ $ErrorActionPreference = "Stop"
 $Root = Split-Path -Parent (Split-Path -Parent $MyInvocation.MyCommand.Path)
 Set-Location $Root
 
+& powershell -ExecutionPolicy Bypass -File (Join-Path $Root "scripts\init-profile.ps1")
+& bash (Join-Path $Root "scripts/verify-assets.sh")
+
 $Skills = @("job-application-assistant", "job-scraper", "upskill")
 $Commands = @(
     @{ Name = "setup";  Desc = "Build your candidate profile from documents, CV, or interview." },

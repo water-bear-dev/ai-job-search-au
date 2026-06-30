@@ -6,11 +6,21 @@
 # Exits 0 if both search and detail return data, non-zero otherwise.
 #
 #   ./verify.sh
+#   ./verify.sh --assets   # cover-letter fonts + cover.cls only (no network)
 #
 set -e
 
 ROOT="$(cd "$(dirname "$0")" && pwd)"
+
+if [ "${1:-}" = "--assets" ]; then
+    exec "$ROOT/scripts/verify-assets.sh"
+fi
+
 SEEK="$ROOT/tools/seek-search/seek_search.py"
+
+echo "==> Cover letter assets"
+"$ROOT/scripts/verify-assets.sh"
+python3 --version
 
 echo "==> Python"
 python3 --version

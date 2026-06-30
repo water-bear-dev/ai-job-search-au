@@ -91,6 +91,8 @@ re-verify:
   fuller redesign (personal data in a gitignored `profile.local` imported by `CLAUDE.md`) is
   still possible but was deferred to avoid disturbing skill/runtime loading.
 
+- **Cover-letter fonts must stay tracked.** Commit `f9922b4` removed `cover_letters/OpenFonts/` and broke fresh clones (PDF showed bullets only). Fonts and `cover.cls` are tracked again; `scripts/verify-assets.sh` fails fast on incomplete checkouts. HTML fallback reuses the same font files via `templates/fonts.css`.
+
 ## Known fragilities / maintenance
 
 - **The SEEK and LinkedIn endpoints are unofficial.** If they change shape, the tools break.

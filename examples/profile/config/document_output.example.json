@@ -1,0 +1,4 @@
+{
+  "document_output_mode": "latex_first_with_html_fallback",
+  "_comment": "latex_first_with_html_fallback (default) | html_first. Set during /setup."
+}

@@ -8,7 +8,7 @@ Follow these steps **exactly in order**. Do not skip steps.
 - Never re-Read a file whose contents are already in your context from an earlier step. If you read it in Step 1, it is still available in Step 2.
 - When dispatching the reviewer agent, pass draft content **inline in the agent prompt** rather than asking the agent to Read files you already have in memory.
 - Run the full verification checklist exactly once, at the end (Step 6). The reviewer focuses on content critique, not verification.
-- Step 5 (compile and inspect PDFs) is mandatory and non-skippable — LaTeX page-break decisions are unpredictable, and `.tex` files that look fine often produce broken PDFs (orphaned entry titles, cover letters spilling to page 2, bullet fonts mismatching).
+- Step 5 (compile and inspect PDFs) is mandatory and non-skippable — layout is unpredictable whether using LaTeX or HTML fallback; source files that look fine often produce broken PDFs (orphaned entry titles, cover letters spilling to page 2, bullet fonts mismatching).
 
 ---
 
@@ -121,7 +121,9 @@ python tools/application_paths.py \
   --json
 ```
 
-Use the JSON output for all paths below. Folder format:
+Use the JSON output for all paths below. Check `config/document_output.json` for `html_first` vs `latex_first_with_html_fallback` (default).
+
+Folder format:
 
 ```
 <YYYYMMDD>-<companyName>-<position>
@@ -136,19 +138,19 @@ Use the JSON output for all paths below. Folder format:
 
 Full paths (both files in the same folder):
 
-- **CV:** `applied_jobs/<application_folder>/<FullName>_CV.tex`
-- **Cover letter:** `applied_jobs/<application_folder>/<FullName>_CoverLetter.tex`
+- **CV:** `applied_jobs/<application_folder>/<FullName>_CV.tex` (or `_CV.html` when `html_first`)
+- **Cover letter:** `applied_jobs/<application_folder>/<FullName>_CoverLetter.tex` (or `_CoverLetter.html` when `html_first`)
 
 Example: `applied_jobs/20260622-NorthernHealth-AIEngineerAgenticAIAndAdvancedAnalytics/`
 
-### CV (`applied_jobs/<application_folder>/<FullName>_CV.tex`)
+### CV (`applied_jobs/<application_folder>/<FullName>_CV.tex` or `_CV.html`)
 - Always in **English**
 - Follow the moderncv/banking format from `05-cv-templates.md`
 - Tailor the profile statement and experience bullets to the specific role
 - Reframe skills and achievements to match job requirements
 - Keep to 2 pages
 
-### Cover Letter (`applied_jobs/<application_folder>/<FullName>_CoverLetter.tex`)
+### Cover Letter (`applied_jobs/<application_folder>/<FullName>_CoverLetter.tex` or `_CoverLetter.html`)
 - Write in **English** (Australian spelling, e.g. "organise", "specialise")
 - Follow the structure from `06-cover-letter-templates.md`
 - Use the `cover.cls` template
@@ -255,9 +257,23 @@ After all edits are applied, the two files on disk are the final drafts.
 
 ## Step 5: DRAFTER - Compile & Inspect PDFs (MANDATORY)
 
-**Never skip this step.** The `.tex` files looking fine is not sufficient — LaTeX page-break decisions are unpredictable and commonly produce broken layouts (orphaned job titles separated from their bullets, cover letters spilling to 2 pages, bullet fonts not matching body text). Compile both documents and visually verify the PDFs before presenting.
+**Never skip this step.** Layout decisions are unpredictable — `.tex` or `.html` that looks fine often produces broken PDFs (orphaned job titles, cover letters spilling to page 2, bullet fonts mismatching). Compile and visually verify PDFs before presenting.
 
-### 5a. Compile
+Read `config/document_output.json` if present (default: `latex_first_with_html_fallback`). Modes:
+- **`latex_first_with_html_fallback`** (default): compile LaTeX first; on failure, ask user before HTML fallback.
+- **`html_first`**: skip LaTeX; draft `.html` in Step 2 (see below) and render with `html_build.py`.
+
+### 5a. Detect toolchain
+
+```bash
+command -v lualatex && command -v xelatex
+```
+
+HTML fallback also needs Chrome or Edge for automated PDF output (`tools/html_build.py`). See `INSTALL.md`.
+
+Run `./scripts/verify-assets.sh` if cover-letter fonts may be missing (symptom: PDF ~7 KB, bullets only).
+
+### 5b. Primary path — LaTeX (`latex_first_with_html_fallback`)
 
 Use `latex_build.py` so aux/log/out land in each application folder's `build/` subfolder (final `.pdf` stays beside the `.tex`):
 
@@ -269,44 +285,68 @@ python tools/latex_build.py \
 
 - CV uses **lualatex**; cover letter uses **xelatex** (cover.cls requires fontspec).
 - Artifacts: `applied_jobs/<application_folder>/build/*`
-- If either compile fails, fix the error and re-compile until clean.
+- If either compile fails and mode is `latex_first_with_html_fallback`, **ask the user** (never auto-fallback):
 
-### 5b. Inspect layout
+> LaTeX failed or is not installed. Port this application to the HTML fallback (same content, Chrome/Edge PDF render)?
 
-Read both PDFs via the Read tool and verify:
+If the user declines, stop with LaTeX troubleshooting from `INSTALL.md`. If they approve, continue to **5c**.
 
-**CV (`applied_jobs/<application_folder>/<FullName>_CV.pdf`):**
+### 5c. HTML fallback (user-approved, or `html_first` mode)
+
+1. Port final draft content from `.tex` (or write directly when `html_first`) into:
+   - `applied_jobs/<application_folder>/<FullName>_CV.html`
+   - `applied_jobs/<application_folder>/<FullName>_CoverLetter.html`
+2. Use structure from `templates/cv.html` and `templates/cover.html`; link CSS via `../../templates/cv.css` and `../../templates/cover.css`.
+3. Render PDFs:
+
+```bash
+python tools/html_build.py \
+  --cv "applied_jobs/<application_folder>/<FullName>_CV.html" \
+  --cover "applied_jobs/<application_folder>/<FullName>_CoverLetter.html"
+```
+
+- Requires headless **Chrome**, **Edge**, or **Chromium**. If `html_build.py` exits 2 (no browser), deliver the `.html` files and tell the user to open in any browser → Print → Save as PDF.
+- Fonts come from `cover_letters/OpenFonts/` via `templates/fonts.css` (same files as LaTeX).
+
+For **`html_first`**, Step 2 drafts `.html` instead of `.tex` (same paths with `.html` extension from `application_paths.py --json`). Skip 5b entirely.
+
+### 5d. Inspect layout
+
+Read both PDFs via the Read tool (or inspect `.html` in browser if no PDF was produced) and verify:
+
+**CV:**
 - [ ] Exactly 2 pages (not 1, not 3)
-- [ ] No orphaned `\cventry` titles — a job/education title line must never sit alone at the bottom of page 1 with its bullets on page 2. This is the most common failure.
-- [ ] Section headings are not isolated at the top of page 2 with only 1-2 lines below
+- [ ] No orphaned entry titles separated from bullets
+- [ ] Section headings not isolated at page top with only 1–2 lines below
 - [ ] No awkward whitespace gaps
 
-**Cover letter (`applied_jobs/<application_folder>/<FullName>_CoverLetter.pdf`):**
+**Cover letter:**
 - [ ] Exactly 1 page
-- [ ] Signature block visible, not cut off or pushed to a second page
-- [ ] Bullet list font matches surrounding body text (both should be Raleway-Medium)
+- [ ] Signature block visible, not cut off
+- [ ] Bullet list font matches body text (Raleway-Medium)
 
-### 5c. Iterate until clean
+### 5e. Iterate until clean
 
-If the layout has problems, edit the `.tex` files and recompile. Common fixes (see `05-cv-templates.md` and `06-cover-letter-templates.md` for full details):
+**LaTeX path** — edit `.tex` and recompile. Common fixes (see `05-cv-templates.md` and `06-cover-letter-templates.md`):
 
 - **Orphaned CV entry title:** `\usepackage{needspace}` in preamble, then `\needspace{5\baselineskip}` immediately before the problematic `\cventry`
-- **CV spills to page 3 with only a trailing section:** `\enlargethispage{2-3\baselineskip}` before a late section
-- **Substantial content on page 3:** cut content using **relevance-weighted cutting** (see `05-cv-templates.md` → "Relevance-weighted cutting"). Score each candidate line by (a) relevance to THIS posting's keywords and responsibilities, (b) uniqueness (is it duplicated elsewhere?), (c) narrative load (does the cover letter depend on it?). Cut the lowest-total-score line first, regardless of section. Do NOT mechanically apply a static section-based priority order — an older-role bullet that hits posting keywords is worth more than a recent-role bullet that does not.
-- **Cover letter itemize breaks compile or uses wrong font:** close `\lettercontent{}` before the list, wrap the list in `{\raggedright\fontspec[Path = ../../cover_letters/OpenFonts/fonts/raleway/]{Raleway-Medium}\fontsize{11pt}{13pt}\selectfont \begin{itemize}...\end{itemize}\par}` (from `applied_jobs/<folder>/`, fonts and `cover.cls` live under `cover_letters/`)
-- **Cover letter spills to 2 pages:** trim using the same relevance-weighted logic. First cut: sentences that restate what a bullet already said. Second cut: a bullet that does not hit posting keywords. Last resort: a bullet that does hit posting keywords. Never reduce geometry or line spacing.
+- **CV spills to page 3:** cut content using **relevance-weighted cutting** (see `05-cv-templates.md`)
+- **Cover letter itemize breaks compile or uses wrong font:** close `\lettercontent{}` before the list, wrap the list in `{\raggedright\fontspec[Path = ../../cover_letters/OpenFonts/fonts/raleway/]{Raleway-Medium}\fontsize{11pt}{13pt}\selectfont \begin{itemize}...\end{itemize}\par}`
+- **Cover letter spills to 2 pages:** trim using relevance-weighted logic
 
-Do not proceed to Step 6 until both PDFs pass inspection.
+**HTML path** — edit `.html`, adjust content length or CSS-driven breaks (`break-inside: avoid` on `.cv-entry`), re-run `html_build.py`.
 
-### 5d. Clean up build artifacts
+Do not proceed to Step 6 until both documents pass inspection (PDF preferred; print-ready HTML acceptable if no browser).
 
-After the final clean compile:
+### 5f. Clean up build artifacts
+
+After LaTeX compile (skip if HTML-only):
 
 ```bash
 python tools/cleanup_latex.py
 ```
 
-This moves any stray `.aux` / `.log` / `.out` files into each folder's `build/` subfolder. A **daily purge** at 11 PM can be installed with `./scripts/install-latex-cleanup.sh` (optional).
+Optional daily purge: `./scripts/install-latex-cleanup.sh`.
 
 ---
 

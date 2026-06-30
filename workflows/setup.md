@@ -2,6 +2,8 @@
 
 You are running the onboarding setup for the AI Job Search framework. Your goal is to collect the user's professional information and populate all profile files so the `/apply` workflow works out of the box.
 
+**Before Step 0:** If `skills/job-application-assistant/SKILL.md` or `AGENTS.md` is missing, tell the user to run `./scripts/init-profile.sh` (or re-run `./scripts/install-adapters.sh`, which calls it automatically). Do not proceed until the placeholder workspace exists.
+
 There are three paths into setup. Step 0 picks the right one; all three converge on Step 3 (file generation) and Step 4 (confirmation).
 
 ---
@@ -322,6 +324,23 @@ Ask about:
 
 This proactive suggestion step helps users discover career paths they might not have considered.
 
+### Section 9b: Document output mode (for `/apply`)
+
+Ask which compile path the user prefers on this machine:
+
+- **`latex_first_with_html_fallback`** (recommended) — `/apply` drafts LaTeX, compiles with `latex_build.py`, and only offers HTML fallback if LaTeX fails (user must approve).
+- **`html_first`** — `/apply` drafts HTML only and renders PDF via `html_build.py` (Chrome/Edge). Use when LaTeX/TinyTeX is blocked by IT policy.
+
+Write the choice to `config/document_output.json`:
+
+```json
+{
+  "document_output_mode": "latex_first_with_html_fallback"
+}
+```
+
+Copy from `examples/profile/config/document_output.example.json` if the file does not exist. Remind the user that cover-letter fonts ship in `cover_letters/OpenFonts/` (verified by `./scripts/verify-assets.sh` after clone).
+
 ---
 
 ## Step 3: Generate Profile Files
@@ -354,7 +373,10 @@ Create STAR examples from their actual experience (at least 3-4 examples). Path 
 ### 7. Update `cv/main_example.tex`
 Replace placeholder personal data with their actual name, contact info, and add their education and most recent experience entries.
 
-### 8. Generate `skills/job-scraper/search-queries.md`
+### 8. Generate `config/document_output.json`
+Set `document_output_mode` from Section 9b (or Path A follow-up). Default: `latex_first_with_html_fallback`.
+
+### 9. Generate `skills/job-scraper/search-queries.md`
 Replace all placeholder tokens in the search queries file with the user's actual information from Section 9 (or the equivalent follow-up questions in Path A's Step A7):
 - Replace `[YOUR_PRIMARY_ROLE_TYPE]`, `[YOUR_PRIMARY_JOB_TITLE]`, etc. with actual role titles
 - Replace `[YOUR_KEY_SKILL]`, `[YOUR_DOMAIN_KEYWORD_1]`, etc. with actual skills and domain terms
@@ -381,6 +403,7 @@ Present a summary:
 > - `skills/job-application-assistant/05-cv-templates.md` - CV templates with your profile statements
 > - `skills/job-application-assistant/07-interview-prep.md` - STAR examples from your experience
 > - `cv/main_example.tex` - Your LaTeX CV template
+> - `config/document_output.json` - LaTeX-first vs HTML-first for `/apply`
 > - `skills/job-scraper/search-queries.md` - Job search queries for `/scrape`
 >
 > **Try it out:**

@@ -8,11 +8,14 @@ Format based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
 ### Added
 
-- **Multi-tool support** — canonical `skills/`, `workflows/`, and `AGENTS.md` (`CLAUDE.md` symlink) with platform adapters for Claude Code, Cursor, and Google Antigravity / Antigravity CLI
+- **`cover_letters/cover.cls` + `cover_letters/OpenFonts/fonts/`** — restored tracked cover-letter fonts (regression fix after `f9922b4`); `scripts/verify-assets.sh` runs on install
+- **HTML fallback for `/apply`** — `tools/html_build.py`, `templates/{cv,cover,fonts}.css`, LaTeX-first with user-approved fallback or `html_first` via `config/document_output.json`
+- **`examples/profile/`** HTML examples (`cv/main_example.html`, `cover_letters/cover_example.html`) and `config/document_output.example.json`
 - **`scripts/install-adapters.sh`** and **`scripts/install-adapters.ps1`** — create skill symlinks and command/workflow wrappers after clone
 - **[`PLATFORMS.md`](PLATFORMS.md)** — per-tool setup and invocation guide
 - **[`SYSTEM_ROADMAP.md`](SYSTEM_ROADMAP.md)** — planned job tracker UI, `/apply` integration, and SQLite upgrade phases
 - **`agent_handoff.example.md`** — template for session handoff when switching between agents; live `agent_handoff.md` is gitignored
+- **`examples/profile/`** — tracked placeholder templates for `skills/`, `AGENTS.md`, and `cv/main_example.tex`; seeded locally by `scripts/init-profile.sh` (called from `install-adapters.sh`)
 - **Cursor adapters** — `.cursor/skills/`, command skills (`/setup`, `/apply`, …), `application-reviewer` subagent, `job-search-core` rule
 - **Antigravity adapters** — `.agents/skills/` symlinks and `.agents/workflows/` wrappers
 - **Job tracker UI (Phase 1)** — `tracker/` FastAPI app + static dashboard for `job_search_tracker.csv`; `job_search_tracker.example.csv` template; `tracker/statuses.json`
@@ -54,7 +57,7 @@ After pulling these changes:
 ./scripts/install-adapters.sh
 git config core.hooksPath .githooks
 cp agent_handoff.example.md agent_handoff.md   # optional, for agent handoff
-/setup                                          # rebuild local cv/, skills/, AGENTS.md if missing
+/setup                                          # populate placeholders with your profile
 ```
 
 If you have legacy flat CV/cover letter files, run `python tools/migrate_application_folders.py` once (dry-run first).

@@ -84,6 +84,8 @@ def application_paths(
     name = full_name_slug(full_name)
     cv_tex = app_dir / f"{name}_CV.tex"
     cover_tex = app_dir / f"{name}_CoverLetter.tex"
+    cv_html = app_dir / f"{name}_CV.html"
+    cover_html = app_dir / f"{name}_CoverLetter.html"
     return {
         "application_folder": folder,
         "applied_jobs_dir": app_dir_rel,
@@ -91,8 +93,12 @@ def application_paths(
         "cover_letter_dir": app_dir_rel,
         "cv_tex": str(cv_tex.relative_to(REPO_ROOT)),
         "cover_letter_tex": str(cover_tex.relative_to(REPO_ROOT)),
+        "cv_html": str(cv_html.relative_to(REPO_ROOT)),
+        "cover_letter_html": str(cover_html.relative_to(REPO_ROOT)),
         "cv_pdf": str(cv_tex.with_suffix(".pdf").relative_to(REPO_ROOT)),
         "cover_letter_pdf": str(cover_tex.with_suffix(".pdf").relative_to(REPO_ROOT)),
+        "cv_html_pdf": str(cv_html.with_suffix(".pdf").relative_to(REPO_ROOT)),
+        "cover_letter_html_pdf": str(cover_html.with_suffix(".pdf").relative_to(REPO_ROOT)),
         "full_name_slug": name,
         "cv_build_dir": str((app_dir / "build").relative_to(REPO_ROOT)),
         "cover_letter_build_dir": str((app_dir / "build").relative_to(REPO_ROOT)),

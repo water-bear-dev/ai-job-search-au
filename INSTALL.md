@@ -62,15 +62,13 @@ Both `seek-search` and the optional `linkedin-search` use **only the standard li
 > `/scrape` and is for personal, low-volume use at your own risk. SEEK is the primary,
 > supported source. See [`tools/linkedin-search/README.md`](tools/linkedin-search/README.md).
 
-## 3. LaTeX (needed only when you run `/apply`)
+## 3. LaTeX (primary for `/apply`) and HTML fallback
 
-`/apply` compiles your CV with **lualatex** and your cover letter with **xelatex**, then
-visually checks the PDFs. You can set up your profile and run `/scrape` without LaTeX; you
-only need it for the application step.
+**Primary:** `/apply` compiles with **lualatex** (CV) and **xelatex** (cover letter), then visually checks PDFs.
 
-For manual compiles, use **`tools/latex_build.py`** (recommended) — it picks the right engine,
-passes `-interaction=nonstopmode`, and keeps aux/log/out in each application folder's
-`build/` subfolder. See [README → Compiling LaTeX](README.md#compiling-latex).
+**Fallback:** If LaTeX is blocked (corp policy, no TinyTeX) or compile fails, `/apply` asks before porting to HTML and running `tools/html_build.py` (headless Chrome, Edge, or Chromium). No LaTeX required on that path. Set `html_first` in `config/document_output.json` during `/setup` to always use HTML.
+
+For manual compiles, use **`tools/latex_build.py`** (LaTeX) or **`tools/html_build.py`** (HTML). See [README → Application files](README.md#application-files--latex--html-fallback).
 
 ### Option A — TinyTeX (recommended; **no sudo / admin password needed**)
 
@@ -154,7 +152,31 @@ lualatex -interaction=nonstopmode main_example.tex
 
 # Or use the project build helper (keeps artifacts in build/):
 python tools/latex_build.py cv/main_example.tex
+
+# HTML fallback smoke test (no LaTeX):
+./scripts/verify-assets.sh
+python tools/html_build.py examples/profile/cv/main_example.html
 ```
+
+### Cover-letter fonts missing after clone
+
+Symptom: cover PDF is ~7 KB and shows only a bullet list (no name, header, or body text).
+
+```bash
+./scripts/verify-assets.sh
+```
+
+Fonts live in `cover_letters/OpenFonts/fonts/` and are **tracked in git**. If the check fails, `git pull` or restore from a complete clone. Do not delete these files — see `cover_letters/OpenFonts/LICENSES.md`.
+
+### HTML fallback without LaTeX
+
+Requires Google Chrome, Microsoft Edge, or Chromium for automated PDF output:
+
+```bash
+python tools/html_build.py examples/profile/cv/main_example.html
+```
+
+If no browser is found, open the `.html` file → Print → Save as PDF.
 
 ---
 

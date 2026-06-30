@@ -195,42 +195,43 @@ After all edits are applied, the CV file on disk is the final draft.
 
 ## Step 5: DRAFTER - Compile & Inspect PDF (MANDATORY)
 
-**Never skip this step.** Compile the CV and visually verify the PDF before presenting.
+Read `config/document_output.json` if present (default: `latex_first_with_html_fallback`).
 
-### 5a. Compile
+### 5a. Detect toolchain
+
+```bash
+command -v lualatex
+./scripts/verify-assets.sh
+```
+
+### 5b. Primary path — LaTeX
 
 ```bash
 python tools/latex_build.py \
   --cv "applied_jobs/<application_folder>/<FullName>_CV.tex"
 ```
 
-- CV uses **lualatex**.
-- Artifacts: `applied_jobs/<application_folder>/build/*`
-- If compile fails, fix the error and re-compile until clean.
+On failure with `latex_first_with_html_fallback`, **ask the user** before HTML fallback (see `workflows/apply.md` Step 5c).
 
-### 5b. Inspect layout
+### 5c. HTML fallback (user-approved, or `html_first`)
 
-Read the CV PDF via the Read tool and verify:
+1. Write `applied_jobs/<application_folder>/<FullName>_CV.html` using `templates/cv.html` + `../../templates/cv.css`.
+2. `python tools/html_build.py --cv "applied_jobs/<application_folder>/<FullName>_CV.html"`
 
-**CV (`applied_jobs/<application_folder>/<FullName>_CV.pdf`):**
-- [ ] Exactly 2 pages (not 1, not 3)
-- [ ] No orphaned `\cventry` titles — a job/education title line must never sit alone at the bottom of page 1 with its bullets on page 2
-- [ ] Section headings are not isolated at the top of page 2 with only 1-2 lines below
+For **`html_first`**, draft `.html` in Step 2 and skip 5b.
+
+### 5d. Inspect layout
+
+Read the CV PDF (or `.html` if no browser) and verify:
+- [ ] Exactly 2 pages
+- [ ] No orphaned entry titles separated from bullets
 - [ ] No awkward whitespace gaps
 
-### 5c. Iterate until clean
+### 5e. Iterate until clean
 
-If the layout has problems, edit the `.tex` file and recompile. Common fixes (see `05-cv-templates.md`):
+Edit `.tex` or `.html` and recompile per `05-cv-templates.md`.
 
-- **Orphaned CV entry title:** `\usepackage{needspace}` in preamble, then `\needspace{5\baselineskip}` immediately before the problematic `\cventry`
-- **CV spills to page 3 with only a trailing section:** `\enlargethispage{2-3\baselineskip}` before a late section
-- **Substantial content on page 3:** cut content using **relevance-weighted cutting** (see `05-cv-templates.md` → "Relevance-weighted cutting")
-
-Do not proceed to Step 6 until the PDF passes inspection.
-
-### 5d. Clean up build artifacts
-
-After the final clean compile:
+### 5f. Clean up (LaTeX only)
 
 ```bash
 python tools/cleanup_latex.py

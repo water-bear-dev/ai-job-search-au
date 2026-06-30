@@ -1,0 +1,55 @@
+Company: Accenture
+Role: Senior Forward Deployed Engineer
+Location: Melbourne, VIC
+URL: https://www.accenture.com/au-en/careers/jobdetails?id=R00328682_en
+
+---
+Job Title: Senior Forward Deployed Engineer
+Location: Melbourne, VIC
+
+About Accenture:
+Accenture is a leading solutions and services company that helps the world’s leading enterprises reinvent by building their digital core and unleashing the power of AI to create value at speed across the enterprise, bringing together the talent of our approximately 786,000 people, our proprietary assets and platforms, and deep ecosystem relationships. Our strategy is to be the reinvention partner of choice for our clients and to be the most client-focused, AI-enabled, great place to work in the world. Through our Reinvention Services we bring together our capabilities across strategy, consulting, technology, operations, Song and Industry X with our deep industry expertise to create and deliver solutions and services for our clients. Our purpose is to deliver on the promise of technology and human ingenuity, and we measure our success by the 360° value we create for all our stakeholders. Visit us at www.accenture.com.
+
+What you’ll do:
+As a Senior Forward Deployed Engineer, you'll work directly with enterprise clients to change how their organisations operate by designing and shipping AI systems that deliver real outcomes. You'll own delivery end-to-end, from the first whiteboard session with a CTO to a production system handling real load.
+You'll work across the best available tooling (Claude, GPT, Gemini etc.) choosing what's right for the problem rather than defaulting to one stack. You'll design pipelines and agentic workflows that have to meet enterprise standards for security, scale, and reliability. You'll do this while mentoring engineers, shaping our internal practices, and becoming the kind of trusted advisor that clients build their AI roadmaps around.
+
+Key responsibilities:
+Strategic Client Leadership:
+- Own the technical relationship with enterprise clients from initial discovery through to production, including C-suite engagement and long-term roadmap influence.
+- Run workshops that identify and prioritise high-value AI use cases, translating business problems into concrete engineering plans.
+
+Solution Design & Delivery:
+- Architect and ship enterprise-grade AI systems using the best available tooling (Claude, GPT, Gemini etc.) chosen for the problem, not the default.
+- Design pipelines and agentic workflows that meet real enterprise requirements: security, scalability, cost efficiency, and reliability at production load.
+- Integrate LLMs with complex enterprise data environments, including cloud platforms and data warehouses.
+
+Technical Leadership:
+- Set the technical direction on engagements, making the hard calls on architecture, tooling, and trade-offs.
+- Mentor engineers on both sides of the client relationship, raising the standard of the whole team.
+- Lead incident resolution and complex troubleshooting.
+
+Governance & Operational Excellence:
+- Define evaluation frameworks that assess model quality, safety, and business impact.
+- Implement LLMOps practices including monitoring, observability, and drift detection in production environments.
+- Ensure every deployment meets enterprise security and compliance requirements from day one.
+
+Here’s what you need:
+Education & Experience:
+- Bachelor’s or Master’s degree in Computer Science, Engineering, or a related field
+- 10+ years of experience in software engineering, solutions architecture, or technical consulting
+- 3+ years delivering AI/ML or LLM-based solutions in production
+- Proven track record of leading complex, customer-facing technical engagements
+
+Technical Skills:
+- Programming & Engineering: Production-quality code, expert-level in at least one language, distributed systems, API design, observability, CI/CD.
+- LLM & AI Platforms: Hands-on experience with Claude, GPT, and Gemini in production. Prompt engineering, RAG, agentic frameworks, MCP, vector databases.
+- Cloud & Data Technologies: Major cloud platform (AWS, Azure, GCP), containerisation & orchestration.
+- Data Platforms: Snowflake, BigQuery, Databricks.
+
+Bonus points if:
+- Experience deploying AI solutions in regulated industries (finance, healthcare, government)
+- Responsible AI and model risk management frameworks
+- Contributions to open-source or publications
+- Eval/observability: LangSmith, Promptfoo, Weights & Biases
+- Startup or high-growth tech environment

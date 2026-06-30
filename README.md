@@ -97,7 +97,7 @@ Then in your AI agent:
 /setup
 ```
 
-Point the agent at your CV in `documents/cv/`, paste a resume, or answer its questions. `/setup` fills `AGENTS.md`, `skills/`, and `cv/main_example.tex` locally (all gitignored — never pushed).
+Point the agent at your CV in `documents/cv/`, paste a resume, or answer its questions. `./scripts/install-adapters.sh` seeds placeholder `skills/`, `AGENTS.md`, and `cv/main_example.tex` from `examples/profile/`; **`/setup`** then replaces placeholders with your real profile (all gitignored — never pushed).
 
 You need **LaTeX** when you run `/apply` or `/applyCVonly` (see [INSTALL.md](INSTALL.md)).
 
@@ -131,7 +131,7 @@ The agent will:
 2. Score fit against your profile and ask before drafting
 3. Draft a tailored CV + cover letter (LaTeX)
 4. Run a **reviewer agent** to critique the drafts
-5. Compile PDFs (`tools/latex_build.py`) and verify layout (2-page CV, 1-page cover letter)
+5. Compile PDFs (`latex_build.py` primary; `html_build.py` fallback if LaTeX unavailable — user must approve) and verify layout (2-page CV, 1-page cover letter)
 6. Add a row to your job tracker (`draft` status)
 
 **You upload the PDFs yourself** — the system does not auto-submit to SEEK or LinkedIn.
@@ -283,26 +283,32 @@ When application count grows:
 
 Contributions welcome on any phase — comment in issues or PRs referencing [SYSTEM_ROADMAP.md](SYSTEM_ROADMAP.md).
 
-## Application files & LaTeX
+## Application files & LaTeX / HTML fallback
 
 `/apply` writes one dated folder per role under **`applied_jobs/`** (gitignored). CV and cover letter share the same folder — see [How to use §2](#2-apply-to-a-job-main-workflow).
 
-`/apply` compiles for you. To rebuild PDFs by hand after editing `.tex` files:
+`/apply` compiles for you (LaTeX first). If LaTeX fails or is unavailable, the agent asks before HTML fallback (`tools/html_build.py`). Set `html_first` in `config/document_output.json` to skip LaTeX.
 
 ```bash
+# Primary (LaTeX)
 python tools/latex_build.py \
   --cv "applied_jobs/20260622-AcmeCorp-DataEngineer/Andrew_Pham_CV.tex" \
   --cover "applied_jobs/20260622-AcmeCorp-DataEngineer/Andrew_Pham_CoverLetter.tex"
+
+# Fallback (HTML → PDF)
+python tools/html_build.py \
+  --cv "applied_jobs/20260622-AcmeCorp-DataEngineer/Andrew_Pham_CV.html" \
+  --cover "applied_jobs/20260622-AcmeCorp-DataEngineer/Andrew_Pham_CoverLetter.html"
 ```
 
 **Tips:**
 
-- Cover letters under `applied_jobs/` use `\documentclass{../../cover_letters/cover}`. `cover.cls` loads fonts from `OpenFonts/` relative to the compile directory — `latex_build.py` creates a symlink to `cover_letters/OpenFonts` automatically. If you compile with raw `xelatex` and the PDF shows only bullets (no header or body), create the symlink manually: `ln -sf ../../cover_letters/OpenFonts OpenFonts` in the application folder, then recompile.
+- Cover letters under `applied_jobs/` use `\documentclass{../../cover_letters/cover}`. `cover.cls` loads fonts from `cover_letters/OpenFonts/` (tracked in git — verify with `./scripts/verify-assets.sh` after clone). `latex_build.py` symlinks `OpenFonts` into the application folder before compile. Symptom if fonts missing: PDF ~7 KB, bullets only, no header/body.
 - Always pass `-interaction=nonstopmode` if you invoke `lualatex` / `xelatex` directly — moderncv can emit non-fatal warnings that otherwise hang on `?` prompts.
 - moderncv may exit non-zero yet still write a valid PDF; check that the `.pdf` exists.
 - After a clean compile, purge aux/log clutter: `python tools/cleanup_latex.py` (optional daily job: `./scripts/install-latex-cleanup.sh` on macOS).
 
-See [INSTALL.md](INSTALL.md) for LaTeX prerequisites (including a no-sudo TinyTeX setup).
+See [INSTALL.md](INSTALL.md) for LaTeX prerequisites (including no-sudo TinyTeX) and HTML fallback (Chrome/Edge).
 
 ## The `seek-search` tool (works standalone too)
 

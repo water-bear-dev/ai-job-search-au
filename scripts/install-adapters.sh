@@ -12,6 +12,9 @@ set -euo pipefail
 ROOT="$(cd "$(dirname "$0")/.." && pwd)"
 cd "$ROOT"
 
+bash "${ROOT}/scripts/init-profile.sh"
+bash "${ROOT}/scripts/verify-assets.sh"
+
 SKILLS=(job-application-assistant job-scraper upskill)
 COMMANDS=(setup apply applyCVonly evaluate scrape expand reset)
 
