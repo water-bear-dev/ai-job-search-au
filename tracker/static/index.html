@@ -4,63 +4,83 @@
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1" />
   <title>Job Tracker — AI Job Search AU</title>
-  <link rel="stylesheet" href="/style.css?v=3" />
+  <link rel="stylesheet" href="/style.css?v=9" />
 </head>
 <body>
-  <header>
-    <h1>Job Tracker</h1>
-    <p class="subtitle">Local applications dashboard · <code>job_search_tracker.csv</code></p>
-    <button type="button" id="btn-add" class="primary">Add job</button>
-  </header>
+  <div class="page-shell">
+    <header class="app-header">
+      <h1 class="app-title">AI Job Search AU</h1>
+      <nav class="app-tabs" role="tablist" aria-label="Sections">
+        <button type="button" class="app-tab active" id="tab-jobs" role="tab" aria-selected="true" aria-controls="panel-jobs" data-tab="jobs">Job Tracker</button>
+        <button type="button" class="app-tab" id="tab-profile" role="tab" aria-selected="false" aria-controls="panel-profile" data-tab="profile">Profile</button>
+      </nav>
+    </header>
 
-  <main>
-    <section id="profile" class="profile-section">
-      <details class="profile-card" open>
-        <summary class="profile-summary">
-          <h2>Profile</h2>
-          <span class="profile-hint">From AGENTS.md</span>
-        </summary>
-        <div id="profile-content" class="profile-content">
-          <p class="empty">Loading profile…</p>
+    <section id="panel-jobs" class="tab-panel active" role="tabpanel" aria-labelledby="tab-jobs" data-panel="jobs">
+      <div class="section-intro">
+        <h2>Job Tracker</h2>
+        <p class="subtitle">Local applications dashboard · <code>job_search_tracker.csv</code></p>
+        <button type="button" id="btn-add" class="primary">Add job</button>
+      </div>
+
+      <div id="message" class="message hidden" role="status"></div>
+
+      <div class="table-toolbar">
+        <label class="search-label">
+          Search
+          <input type="search" id="job-search" placeholder="Company, role, status, notes…" autocomplete="off" />
+        </label>
+        <label class="page-size-label">
+          Per page
+          <select id="page-size">
+            <option value="10" selected>10</option>
+            <option value="20">20</option>
+            <option value="50">50</option>
+          </select>
+        </label>
+        <div class="pagination">
+          <button type="button" id="btn-prev" class="small" disabled>Prev</button>
+          <span id="page-info" class="page-info">Page 1 of 1</span>
+          <button type="button" id="btn-next" class="small" disabled>Next</button>
         </div>
-      </details>
+      </div>
+
+      <div class="table-wrap">
+        <table class="jobs-table">
+          <colgroup>
+            <col class="col-title" />
+            <col class="col-status" />
+            <col class="col-attachments" />
+            <col class="col-notes" />
+            <col class="col-actions" />
+          </colgroup>
+          <thead>
+            <tr>
+              <th>Title</th>
+              <th>Status</th>
+              <th>Attachments</th>
+              <th>Notes</th>
+              <th>Actions</th>
+            </tr>
+          </thead>
+          <tbody id="jobs-body">
+            <tr><td colspan="5" class="empty">Loading…</td></tr>
+          </tbody>
+        </table>
+      </div>
     </section>
 
-    <div id="message" class="message hidden" role="status"></div>
-
-    <div class="table-toolbar">
-      <label class="page-size-label">
-        Per page
-        <select id="page-size">
-          <option value="10" selected>10</option>
-          <option value="20">20</option>
-          <option value="50">50</option>
-        </select>
-      </label>
-      <div class="pagination">
-        <button type="button" id="btn-prev" class="small" disabled>Prev</button>
-        <span id="page-info" class="page-info">Page 1 of 1</span>
-        <button type="button" id="btn-next" class="small" disabled>Next</button>
+    <section id="panel-profile" class="tab-panel" role="tabpanel" aria-labelledby="tab-profile" data-panel="profile" hidden>
+      <div class="section-intro">
+        <h2>Profile</h2>
+        <p class="subtitle">Candidate profile from <code>AGENTS.md</code></p>
+        <button type="button" id="btn-edit-profile" class="primary">Edit profile</button>
       </div>
-    </div>
-
-    <div class="table-wrap">
-      <table>
-        <thead>
-          <tr>
-            <th>Title</th>
-            <th>Status</th>
-            <th>Attachments</th>
-            <th>Notes</th>
-            <th>Actions</th>
-          </tr>
-        </thead>
-        <tbody id="jobs-body">
-          <tr><td colspan="5" class="empty">Loading…</td></tr>
-        </tbody>
-      </table>
-    </div>
-  </main>
+      <div id="profile-content" class="profile-content">
+        <p class="empty">Loading profile…</p>
+      </div>
+    </section>
+  </div>
 
   <dialog id="job-dialog">
     <form id="job-form" method="dialog">
@@ -102,6 +122,22 @@
     </form>
   </dialog>
 
-  <script src="/app.js?v=3"></script>
+  <dialog id="profile-dialog">
+    <form id="profile-form" method="dialog">
+      <h2>Edit profile</h2>
+      <p class="profile-edit-hint">Edits are saved to <code>AGENTS.md</code> as markdown. Format with the toolbar or type bullets directly.</p>
+      <div id="profile-sections" class="profile-sections"></div>
+      <div class="dialog-actions">
+        <div class="dialog-actions-right">
+          <button type="button" id="btn-profile-cancel">Cancel</button>
+          <button type="submit" class="primary">Save profile</button>
+        </div>
+      </div>
+    </form>
+  </dialog>
+
+  <script src="/vendor/marked.min.js"></script>
+  <script src="/vendor/turndown.js"></script>
+  <script src="/app.js?v=6"></script>
 </body>
 </html>

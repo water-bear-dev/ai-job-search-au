@@ -1,6 +1,10 @@
 let statusesConfig = { default_status: "draft", statuses: [], labels: {} };
 let lastRevision = 0;
 let allJobs = [];
+let searchQuery = "";
+let profileData = { sections: [] };
+let profileEditors = new Map();
+let turndownService = null;
 let pageSize = 10;
 let currentPage = 1;
 const REVISION_POLL_MS = 3000;
@@ -9,8 +13,10 @@ const $ = (sel) => document.querySelector(sel);
 const jobsBody = $("#jobs-body");
 const dialog = $("#job-dialog");
 const linkDialog = $("#link-dialog");
+const profileDialog = $("#profile-dialog");
 const linkForm = $("#link-form");
 const form = $("#job-form");
+const profileForm = $("#profile-form");
 const messageEl = $("#message");
 const btnDelete = $("#btn-delete");
 
@@ -84,9 +90,8 @@ function attachmentCell(job) {
   if (job.cover_letter_file) {
     const pdf = job.cover_letter_file.replace(/\.tex$/i, ".pdf");
     parts.push(fileLink(pdf, "Cover Letter PDF"));
-  } else {
-    parts.push('<span class="missing">Cover Letter PDF: —</span>');
   }
+  if (!parts.length) return '<span class="missing">—</span>';
   return `<div class="attachments">${parts.join("")}</div>`;
 }
 
@@ -124,17 +129,52 @@ function titleCell(job, index) {
   return `${titleHtml}${timestamps}`;
 }
 
-function updatePaginationControls(totalPages, total) {
-  $("#page-info").textContent = `Page ${currentPage} of ${totalPages} (${total} total)`;
+function jobSearchText(job) {
+  const fields = [
+    job.company,
+    job.role,
+    job.status,
+    statusLabel(job.status || statusesConfig.default_status),
+    job.notes,
+    job.source,
+    job.cv_file,
+    job.cover_letter_file,
+    job.sector,
+    job.role_type,
+    job.channel,
+    job.contact_person,
+    job.fit_rating,
+    jobCreatedAt(job),
+    jobModifiedAt(job),
+  ];
+  return fields.filter(Boolean).join(" ").toLowerCase();
+}
+
+function filterJobs(jobs) {
+  const q = searchQuery.trim().toLowerCase();
+  if (!q) return jobs;
+  return jobs.filter(({ job }) => jobSearchText(job).includes(q));
+}
+
+function updatePaginationControls(totalPages, total, filteredTotal) {
+  const suffix =
+    filteredTotal !== total ? ` (${filteredTotal} of ${total} shown)` : ` (${total} total)`;
+  $("#page-info").textContent = `Page ${currentPage} of ${totalPages}${suffix}`;
   $("#btn-prev").disabled = currentPage <= 1;
   $("#btn-next").disabled = currentPage >= totalPages;
 }
 
 function renderJobs() {
-  const items = allJobs;
-  if (!items.length) {
+  const filtered = filterJobs(allJobs);
+  const items = filtered;
+  if (!allJobs.length) {
     jobsBody.innerHTML = '<tr><td colspan="5" class="empty">No applications yet. Add one above.</td></tr>';
-    updatePaginationControls(1, 0);
+    updatePaginationControls(1, 0, 0);
+    return;
+  }
+  if (!items.length) {
+    jobsBody.innerHTML = `<tr><td colspan="5" class="empty">No jobs match “${escapeHtml(searchQuery.trim())}”.</td></tr>`;
+    updatePaginationControls(1, allJobs.length, 0);
     return;
   }
 
@@ -142,12 +182,12 @@ function renderJobs() {
   if (currentPage > totalPages) currentPage = totalPages;
   const start = (currentPage - 1) * pageSize;
   const pageItems = items.slice(start, start + pageSize);
-  updatePaginationControls(totalPages, items.length);
+  updatePaginationControls(totalPages, allJobs.length, items.length);
 
   jobsBody.innerHTML = pageItems
     .map(({ index, job }) => {
       const notes = job.notes
-        ? `<span class="notes-preview" title="${escapeHtml(job.notes)}">${escapeHtml(job.notes)}</span>`
+        ? `<span class="notes-preview">${escapeHtml(job.notes)}</span>`
         : '<span class="missing">—</span>';
       return `<tr>
         <td>${titleCell(job, index)}</td>
@@ -155,7 +195,9 @@ function renderJobs() {
         <td>${attachmentCell(job)}</td>
         <td>${notes}</td>
         <td class="actions">
-          <button type="button" class="small btn-edit" data-index="${index}">Edit</button>
+          <div class="actions-inner">
+            <button type="button" class="small btn-edit" data-index="${index}">Edit</button>
+          </div>
         </td>
       </tr>`;
     })
@@ -220,7 +262,44 @@ linkForm.addEventListener("submit", async (e) => {
 
 $("#btn-link-cancel").addEventListener("click", () => linkDialog.close());
 
+function ensureMarkdownTools() {
+  if (!turndownService && typeof TurndownService !== "undefined") {
+    turndownService = new TurndownService({
+      headingStyle: "atx",
+      bulletListMarker: "-",
+      emDelimiter: "*",
+      strongDelimiter: "**",
+    });
+  }
+}
+
+function sectionMarkdown(section) {
+  if (section.raw) return section.raw;
+  if (section.items?.length) return section.items.map((item) => `- ${item}`).join("\n");
+  return "";
+}
+
+function markdownToHtml(markdown) {
+  if (typeof marked === "undefined") return escapeHtml(markdown).replace(/\n/g, "<br>");
+  return marked.parse(markdown, { breaks: true, gfm: true });
+}
+
+function htmlToMarkdown(html) {
+  ensureMarkdownTools();
+  if (!turndownService) {
+    const tmp = document.createElement("div");
+    tmp.innerHTML = html;
+    return tmp.textContent || "";
+  }
+  return turndownService.turndown(html).trim();
+}
+
+function destroyProfileEditors() {
+  profileEditors.clear();
+}
+
 function renderProfile(data) {
+  profileData = data;
   const el = $("#profile-content");
   if (!data.sections?.length) {
     el.innerHTML = '<p class="empty">No profile found in AGENTS.md.</p>';
@@ -231,10 +310,101 @@ function renderProfile(data) {
       (section) => `
       <div class="profile-block">
         <h3>${escapeHtml(section.title)}</h3>
-        <ul>${section.items.map((item) => `<li>${escapeHtml(item)}</li>`).join("")}</ul>
+        <div class="profile-markdown">${markdownToHtml(sectionMarkdown(section))}</div>
       </div>`
     )
     .join("");
+}
+
+function createWysiwygEditor(section, index) {
+  const wrap = document.createElement("div");
+  wrap.className = "profile-section-field";
+
+  const title = document.createElement("span");
+  title.className = "profile-section-title";
+  title.textContent = section.title;
+
+  const editorWrap = document.createElement("div");
+  editorWrap.className = "profile-wysiwyg-wrap";
+
+  const toolbar = document.createElement("div");
+  toolbar.className = "wysiwyg-toolbar";
+  toolbar.innerHTML = `
+    <button type="button" class="wysiwyg-btn" data-cmd="bold" title="Bold"><strong>B</strong></button>
+    <button type="button" class="wysiwyg-btn" data-cmd="italic" title="Italic"><em>I</em></button>
+    <button type="button" class="wysiwyg-btn" data-cmd="insertUnorderedList" title="Bullet list">•</button>
+    <button type="button" class="wysiwyg-btn" data-cmd="link" title="Insert link">Link</button>
+  `;
+
+  const editable = document.createElement("div");
+  editable.className = "profile-wysiwyg";
+  editable.contentEditable = "true";
+  editable.spellcheck = true;
+  editable.dataset.sectionIndex = String(index);
+  editable.innerHTML = markdownToHtml(sectionMarkdown(section));
+
+  toolbar.addEventListener("click", (e) => {
+    const btn = e.target.closest("button[data-cmd]");
+    if (!btn) return;
+    e.preventDefault();
+    editable.focus();
+    const cmd = btn.dataset.cmd;
+    if (cmd === "link") {
+      const url = prompt("Link URL:");
+      if (url) document.execCommand("createLink", false, url.trim());
+      return;
+    }
+    document.execCommand(cmd, false, null);
+  });
+
+  editorWrap.append(toolbar, editable);
+  wrap.append(title, editorWrap);
+  profileEditors.set(index, editable);
+  return wrap;
+}
+
+function renderProfileEditor() {
+  destroyProfileEditors();
+  const container = $("#profile-sections");
+  container.innerHTML = "";
+  if (!profileData.sections?.length) {
+    container.innerHTML = '<p class="empty">No profile sections to edit.</p>';
+    return;
+  }
+  profileData.sections.forEach((section, index) => {
+    container.appendChild(createWysiwygEditor(section, index));
+  });
+}
+
+function openProfileEditor() {
+  ensureMarkdownTools();
+  renderProfileEditor();
+  profileDialog.showModal();
+  const firstField = $("#profile-sections .profile-wysiwyg");
+  if (firstField) firstField.focus();
+}
+
+async function saveProfile(e) {
+  e.preventDefault();
+  const sections = profileData.sections.map((section, index) => {
+    const editable = profileEditors.get(index);
+    return {
+      title: section.title,
+      raw: editable ? htmlToMarkdown(editable.innerHTML) : section.raw || "",
+    };
+  });
+  try {
+    const updated = await api("/api/profile", {
+      method: "PUT",
+      body: JSON.stringify({ sections }),
+    });
+    destroyProfileEditors();
+    renderProfile(updated);
+    profileDialog.close();
+    showMessage("Profile saved to AGENTS.md");
+  } catch (err) {
+    showMessage(err.message, true);
+  }
 }
 
 function fillStatusSelect(selectEl, selected) {
@@ -266,7 +436,7 @@ async function loadJobs(resetPage = true) {
 }
 
 async function pollRevision() {
-  if (dialog.open || linkDialog.open) return;
+  if (dialog.open || linkDialog.open || profileDialog.open) return;
   try {
     const { revision } = await api("/api/revision");
     if (revision === lastRevision) return;
@@ -377,11 +547,42 @@ $("#btn-prev").addEventListener("click", () => {
 });
 
 $("#btn-next").addEventListener("click", () => {
-  const totalPages = Math.max(1, Math.ceil(allJobs.length / pageSize));
+  const totalPages = Math.max(1, Math.ceil(filterJobs(allJobs).length / pageSize));
   if (currentPage < totalPages) {
     currentPage += 1;
     renderJobs();
   }
+});
+
+$("#job-search").addEventListener("input", (e) => {
+  searchQuery = e.target.value;
+  currentPage = 1;
+  renderJobs();
+});
+
+function switchTab(tabName) {
+  document.querySelectorAll(".app-tab").forEach((tab) => {
+    const selected = tab.dataset.tab === tabName;
+    tab.classList.toggle("active", selected);
+    tab.setAttribute("aria-selected", selected ? "true" : "false");
+  });
+  document.querySelectorAll(".tab-panel").forEach((panel) => {
+    const show = panel.dataset.panel === tabName;
+    panel.classList.toggle("active", show);
+    panel.hidden = !show;
+  });
+}
+
+document.querySelectorAll(".app-tab").forEach((tab) => {
+  tab.addEventListener("click", () => switchTab(tab.dataset.tab));
+});
+
+$("#btn-edit-profile").addEventListener("click", () => openProfileEditor());
+
+profileForm.addEventListener("submit", saveProfile);
+$("#btn-profile-cancel").addEventListener("click", () => {
+  destroyProfileEditors();
+  profileDialog.close();
 });
 
 (async function init() {

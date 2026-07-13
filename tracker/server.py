@@ -27,7 +27,7 @@ from starlette.responses import Response
 from pydantic import BaseModel, Field
 
 from csv_store import COLUMNS, REPO_ROOT, TRACKER_DIR, ensure_csv_exists, new_row, read_rows, touch_modified, write_rows
-from profile import parse_profile
+from profile import parse_profile, write_profile
 from revision import bump_revision, get_revision
 
 STATUSES_PATH = TRACKER_DIR / "statuses.json"
@@ -108,10 +108,15 @@ class StatusesConfig(BaseModel):
 
 class ProfileSection(BaseModel):
     title: str
-    items: list[str]
+    items: list[str] = Field(default_factory=list)
+    raw: str = ""
 
 
 class ProfileResponse(BaseModel):
+    sections: list[ProfileSection]
+
+
+class ProfileUpdate(BaseModel):
     sections: list[ProfileSection]
 
 
@@ -227,6 +232,19 @@ def get_statuses() -> StatusesConfig:
 def get_profile() -> ProfileResponse:
     data = parse_profile()
     return ProfileResponse(**data)
+
+
+@app.put("/api/profile")
+def update_profile(body: ProfileUpdate) -> ProfileResponse:
+    if not body.sections:
+        raise HTTPException(status_code=400, detail="At least one profile section is required")
+    try:
+        write_profile([s.model_dump() for s in body.sections])
+    except FileNotFoundError as exc:
+        raise HTTPException(status_code=404, detail=str(exc)) from exc
+    except ValueError as exc:
+        raise HTTPException(status_code=400, detail=str(exc)) from exc
+    return ProfileResponse(**parse_profile())
 
 
 @app.get("/api/files/exists")

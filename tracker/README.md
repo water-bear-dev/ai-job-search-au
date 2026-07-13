@@ -76,6 +76,8 @@ fit_rating, notes, cv_file, cover_letter_file, source
 | DELETE | `/api/jobs/{index}` | Delete job |
 | GET | `/api/revision` | Data revision (poll to detect CSV changes from `/apply`) |
 | POST | `/api/revision` | Notify hook (called by `upsert_application.py` after writes) |
+| GET | `/api/profile` | Candidate profile sections from `AGENTS.md` |
+| PUT | `/api/profile` | Update `AGENTS.md` Candidate Profile (body: `{ sections: [{ title, raw }] }`) |
 | GET | `/api/files?path=...` | Download attachment |
 
 Interactive docs: http://127.0.0.1:8765/api/docs
