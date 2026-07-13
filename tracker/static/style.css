@@ -94,6 +94,63 @@ body {
   font-size: 0.875rem;
 }
 
+.section-actions {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  flex-wrap: wrap;
+  width: 100%;
+}
+
+.section-actions #btn-open-trash {
+  margin-left: auto;
+}
+
+.trash-section-intro .btn-back {
+  margin-bottom: 0.75rem;
+}
+
+#btn-open-trash {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.4rem;
+}
+
+.trash-count-badge {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 1.25rem;
+  height: 1.25rem;
+  padding: 0 0.3rem;
+  border-radius: 999px;
+  background: var(--bg);
+  border: 1px solid var(--border);
+  color: var(--muted);
+  font-size: 0.6875rem;
+  font-weight: 600;
+}
+
+col.col-trash-title {
+  width: 40%;
+}
+
+col.col-trash-deleted {
+  width: 22%;
+}
+
+col.col-trash-remaining {
+  width: 18%;
+}
+
+col.col-trash-actions {
+  width: 20%;
+}
+
+.trash-table .actions-inner {
+  flex-wrap: wrap;
+}
+
 button {
   cursor: pointer;
   border: 1px solid var(--border);
@@ -278,6 +335,62 @@ button:disabled {
 .page-info {
   font-size: 0.875rem;
   color: var(--muted);
+}
+
+.bulk-bar {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  flex-wrap: wrap;
+  margin-bottom: 0.75rem;
+  padding: 0.65rem 0.85rem;
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  background: var(--surface);
+}
+
+.bulk-bar.hidden {
+  display: none;
+}
+
+.bulk-count {
+  font-size: 0.875rem;
+  color: var(--text);
+  font-weight: 600;
+}
+
+.bulk-status-label {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  font-size: 0.875rem;
+  color: var(--muted);
+}
+
+.bulk-status-label select {
+  padding: 0.25rem 0.5rem;
+  border: 1px solid var(--border);
+  border-radius: 4px;
+  background: var(--bg);
+  color: var(--text);
+  font: inherit;
+}
+
+tr.job-row {
+  cursor: pointer;
+}
+
+tr.job-row:hover {
+  background: rgba(59, 130, 246, 0.06);
+}
+
+tr.job-row.selected {
+  background: rgba(59, 130, 246, 0.16);
+  box-shadow: inset 3px 0 0 var(--accent);
+}
+
+tr.job-row.selected:hover {
+  background: rgba(59, 130, 246, 0.22);
 }
 
 .table-wrap {
@@ -631,6 +744,25 @@ dialog::backdrop {
 
 #btn-delete.hidden {
   display: none;
+}
+
+.confirm-message {
+  margin: 0;
+  white-space: pre-line;
+  color: var(--muted);
+  font-size: 0.875rem;
+  line-height: 1.5;
+}
+
+#confirm-form {
+  padding: 1.5rem;
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+}
+
+#confirm-form h2 {
+  margin: 0;
 }
 
 select.status-select {

@@ -4,7 +4,7 @@
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1" />
   <title>Job Tracker — AI Job Search AU</title>
-  <link rel="stylesheet" href="/style.css?v=9" />
+  <link rel="stylesheet" href="/style.css?v=15" />
 </head>
 <body>
   <div class="page-shell">
@@ -17,19 +17,24 @@
     </header>
 
     <section id="panel-jobs" class="tab-panel active" role="tabpanel" aria-labelledby="tab-jobs" data-panel="jobs">
-      <div class="section-intro">
+      <div class="section-intro" id="jobs-section-intro">
         <h2>Job Tracker</h2>
         <p class="subtitle">Local applications dashboard · <code>job_search_tracker.csv</code></p>
-        <button type="button" id="btn-add" class="primary">Add job</button>
+        <div class="section-actions">
+          <button type="button" id="btn-add" class="primary">Add job</button>
+          <button type="button" id="btn-open-trash" class="small">Recycle Bin <span id="trash-count-badge" class="trash-count-badge">0</span></button>
+        </div>
       </div>
 
       <div id="message" class="message hidden" role="status"></div>
 
+      <div id="jobs-view">
       <div class="table-toolbar">
         <label class="search-label">
           Search
           <input type="search" id="job-search" placeholder="Company, role, status, notes…" autocomplete="off" />
         </label>
+        <button type="button" id="btn-select-all-filtered" class="small">Select all</button>
         <label class="page-size-label">
           Per page
           <select id="page-size">
@@ -43,6 +48,17 @@
           <span id="page-info" class="page-info">Page 1 of 1</span>
           <button type="button" id="btn-next" class="small" disabled>Next</button>
         </div>
+      </div>
+
+      <div id="bulk-bar" class="bulk-bar hidden" role="region" aria-label="Bulk actions">
+        <span id="bulk-count" class="bulk-count">0 selected</span>
+        <label class="bulk-status-label">
+          Status
+          <select id="bulk-status"></select>
+        </label>
+        <button type="button" id="btn-bulk-status" class="small primary">Change status</button>
+        <button type="button" id="btn-bulk-delete" class="small danger">Move to Recycle Bin</button>
+        <button type="button" id="btn-bulk-clear" class="small">Clear selection</button>
       </div>
 
       <div class="table-wrap">
@@ -67,6 +83,44 @@
             <tr><td colspan="5" class="empty">Loading…</td></tr>
           </tbody>
         </table>
+      </div>
+      </div>
+
+      <div id="trash-view" hidden>
+        <div class="section-intro trash-section-intro">
+          <button type="button" id="btn-back-jobs" class="small btn-back">← Back to jobs</button>
+          <h2>Recycle Bin</h2>
+          <p id="trash-subtitle" class="subtitle">Deleted jobs are kept for 30 days, then removed automatically.</p>
+        </div>
+
+        <div id="trash-bulk-bar" class="bulk-bar hidden" role="region" aria-label="Recycle bin bulk actions">
+          <span id="trash-bulk-count" class="bulk-count">0 selected</span>
+          <button type="button" id="btn-trash-restore" class="small primary">Restore selected</button>
+          <button type="button" id="btn-trash-permanent" class="small danger">Delete permanently</button>
+          <button type="button" id="btn-trash-clear" class="small">Clear selection</button>
+        </div>
+
+        <div class="table-wrap">
+          <table class="jobs-table trash-table">
+            <colgroup>
+              <col class="col-trash-title" />
+              <col class="col-trash-deleted" />
+              <col class="col-trash-remaining" />
+              <col class="col-trash-actions" />
+            </colgroup>
+            <thead>
+              <tr>
+                <th>Title</th>
+                <th>Deleted</th>
+                <th>Auto-delete in</th>
+                <th>Actions</th>
+              </tr>
+            </thead>
+            <tbody id="trash-body">
+              <tr><td colspan="4" class="empty">Loading…</td></tr>
+            </tbody>
+          </table>
+        </div>
       </div>
     </section>
 
@@ -98,7 +152,7 @@
       <label>Notes <textarea id="field-notes" rows="3"></textarea></label>
 
       <div class="dialog-actions">
-        <button type="button" id="btn-delete" class="danger hidden">Delete</button>
+        <button type="button" id="btn-delete" class="danger hidden">Move to Recycle Bin</button>
         <div class="dialog-actions-right">
           <button type="button" id="btn-cancel">Cancel</button>
           <button type="submit" class="primary">Save</button>
@@ -136,8 +190,21 @@
     </form>
   </dialog>
 
+  <dialog id="confirm-dialog">
+    <form id="confirm-form" method="dialog">
+      <h2 id="confirm-title">Confirm</h2>
+      <p id="confirm-message" class="confirm-message"></p>
+      <div class="dialog-actions">
+        <div class="dialog-actions-right">
+          <button type="button" id="btn-confirm-cancel">Cancel</button>
+          <button type="submit" id="btn-confirm-ok" class="primary">Confirm</button>
+        </div>
+      </div>
+    </form>
+  </dialog>
+
   <script src="/vendor/marked.min.js"></script>
   <script src="/vendor/turndown.js"></script>
-  <script src="/app.js?v=6"></script>
+  <script src="/app.js?v=11"></script>
 </body>
 </html>

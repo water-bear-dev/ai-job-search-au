@@ -175,12 +175,29 @@ Pick a listing from the shortlist, then `/apply` with its URL. Scrape state is s
 Keep a local dashboard open while you work:
 
 ```bash
-cd tracker && pip install -r requirements.txt && python server.py
+cd tracker && pip install -r requirements.txt && python3 server.py
 ```
 
-Open **http://127.0.0.1:8765** — view/edit status, notes, and attachment links. The UI **auto-refreshes** when `/apply` updates `job_search_tracker.csv`. Statuses are editable in `tracker/statuses.json`.
+Open **http://127.0.0.1:8765**. The UI **auto-refreshes** when `/apply` or scripts update `job_search_tracker.csv`.
 
-The tracker is read/edit only today; it does not run agent commands yet. See [Implementation roadmap](#implementation-roadmap). Details: [`tracker/README.md`](tracker/README.md).
+#### Job Tracker tab (default)
+
+| Area | What you can do |
+|------|-----------------|
+| **Header** | **Add job** (left) and **Recycle Bin** with count badge (right, same row) |
+| **Table** | Search, paginate, inline status edits, CV/cover PDF links (cover letter omitted when none) |
+| **Selection** | Click a row to highlight and select; **Select all** applies to all filtered jobs |
+| **Bulk bar** | Change status for many jobs, or **Move to Recycle Bin** (confirmation required) |
+| **Edit dialog** | Update fields or move a single job to Recycle Bin (confirmation required) |
+
+**Recycle Bin** opens as a separate view (not beside the table): deleted jobs, days until auto-purge, restore, or permanent delete. Permanent delete always shows an **irreversible** confirmation. Items are purged automatically after **30 days** (`job_search_tracker_trash.csv`, gitignored).
+
+#### Profile tab
+
+- View `AGENTS.md` candidate profile as rendered markdown
+- **Edit profile** — light WYSIWYG per section; saves markdown back to `AGENTS.md`
+
+Statuses are configurable in `tracker/statuses.json`. The tracker is read/edit only today; it does not run agent commands yet. See [Implementation roadmap](#implementation-roadmap). API reference: [`tracker/README.md`](tracker/README.md).
 
 ### 6. Commands reference
 
@@ -224,7 +241,44 @@ Legacy applications may still live under `cv/<folder>/` and `cover_letters/<fold
 
 ## Job tracker UI
 
-> **Summary:** `cd tracker && python server.py` → http://127.0.0.1:8765. See [How to use §5](#5-track-applications-tracker-ui).
+> **Summary:** `cd tracker && python3 server.py` → http://127.0.0.1:8765. See [How to use §5](#5-track-applications-tracker-ui).
+
+Local FastAPI app (`tracker/`) with a tabbed browser UI. Data lives in gitignored CSV files at the repo root:
+
+| File | Purpose |
+|------|---------|
+| `job_search_tracker.csv` | Active applications (`/apply`, `/scrape`, `/upskill` use this schema — do not rename columns) |
+| `job_search_tracker_trash.csv` | Soft-deleted jobs (Recycle Bin); auto-purged after 30 days |
+
+### Layout
+
+- **Job Tracker** tab — applications table (default on load)
+- **Profile** tab — read/edit `AGENTS.md`
+- **Recycle Bin** — separate screen inside Job Tracker (button top-right, next to **Add job**); **← Back to jobs** returns to the table
+
+### Features
+
+| Feature | Details |
+|---------|---------|
+| **Search** | Filters company, role, status, notes, URLs, file paths |
+| **Pagination** | 10 / 20 / 50 per page; stable column widths |
+| **Row selection** | Click row to highlight; no checkbox column |
+| **Bulk status** | Select many → pick status → **Change status** |
+| **Soft delete** | Individual or bulk **Move to Recycle Bin**; confirm before moving |
+| **Recycle Bin** | Restore to tracker, or **Delete permanently** (confirm: irreversible); shows days until purge |
+| **Attachments** | Open compiled CV PDF; cover letter link only when `cover_letter_file` is set |
+| **Profile editor** | WYSIWYG (bold, lists, links) with markdown round-trip to `AGENTS.md` |
+| **Live refresh** | Polls `/api/revision` when `upsert_application.py` or the UI writes CSV |
+
+### Run options
+
+```bash
+cd tracker && python3 server.py
+# or
+TRACKER_PORT=9000 python3 server.py
+```
+
+Interactive API docs: http://127.0.0.1:8765/api/docs
 
 ## Implementation roadmap
 
@@ -238,7 +292,7 @@ High-level plan for evolving the repo. Full tracker history and Phase 1–3 deta
 | Multi-tool agents (`/setup`, `/apply`, `/evaluate`, `/scrape`, …) | Done |
 | SEEK + optional LinkedIn CLIs | Done |
 | `tools/parse_posting.py` — URL or paste → normalized JSON | Done |
-| Job tracker UI (local CSV dashboard) | Done |
+| Job tracker UI — tabs, search, bulk actions, Recycle Bin (30-day), profile WYSIWYG | Done |
 | `/apply` auto-upsert to tracker + live UI refresh | Done |
 | Dated application folders + `latex_build.py` | Done |
 | Cover letter font symlink for `applied_jobs/` compiles | Done |
@@ -381,7 +435,7 @@ keeps it out of git:
 | `cv/`, `skills/`, `AGENTS.md` | Profile and LaTeX workspace (populated by `/setup`) |
 | `applied_jobs/` | Generated application CVs and cover letters (per-job folders) |
 | `cover_letters/*/*.tex`, nested CV `.tex` | Legacy application outputs |
-| `documents/` (except `.gitkeep`), `job_search_tracker.csv` | Supporting files and tracker |
+| `documents/` (except `.gitkeep`), `job_search_tracker.csv`, `job_search_tracker_trash.csv` | Supporting files and tracker |
 | `job_scraper/seen_jobs.json`, `*.pdf`, `salary_data.json` | Scrape state, compiled PDFs, salary data |
 
 `CLAUDE.md` is a **symlink to `AGENTS.md`** (tracked as a symlink only — safe to push as long

@@ -7,6 +7,12 @@ let profileEditors = new Map();
 let turndownService = null;
 let pageSize = 10;
 let currentPage = 1;
+const selectedJobIndices = new Set();
+const selectedTrashIndices = new Set();
+let allTrash = [];
+let trashRetentionDays = 30;
+let jobsSubView = "jobs";
+let confirmResolver = null;
 const REVISION_POLL_MS = 3000;
 
 const $ = (sel) => document.querySelector(sel);
@@ -17,6 +23,9 @@ const profileDialog = $("#profile-dialog");
 const linkForm = $("#link-form");
 const form = $("#job-form");
 const profileForm = $("#profile-form");
+const confirmDialog = $("#confirm-dialog");
+const confirmForm = $("#confirm-form");
+const trashBody = $("#trash-body");
 const messageEl = $("#message");
 const btnDelete = $("#btn-delete");
 
@@ -25,6 +34,65 @@ function showMessage(text, isError = false) {
   messageEl.classList.toggle("error", isError);
   messageEl.classList.remove("hidden");
   setTimeout(() => messageEl.classList.add("hidden"), 4000);
+}
+
+function confirmAction({ title, message, confirmLabel = "Confirm", danger = false }) {
+  return new Promise((resolve) => {
+    $("#confirm-title").textContent = title;
+    $("#confirm-message").textContent = message;
+    const okBtn = $("#btn-confirm-ok");
+    okBtn.textContent = confirmLabel;
+    okBtn.classList.toggle("danger", danger);
+    okBtn.classList.toggle("primary", !danger);
+    confirmResolver = resolve;
+    confirmDialog.showModal();
+  });
+}
+
+confirmForm.addEventListener("submit", (e) => {
+  e.preventDefault();
+  confirmDialog.close();
+  if (confirmResolver) confirmResolver(true);
+  confirmResolver = null;
+});
+
+$("#btn-confirm-cancel").addEventListener("click", () => {
+  confirmDialog.close();
+  if (confirmResolver) confirmResolver(false);
+  confirmResolver = null;
+});
+
+confirmDialog.addEventListener("cancel", () => {
+  if (confirmResolver) confirmResolver(false);
+  confirmResolver = null;
+});
+
+function formatJobListPreview(labels) {
+  const preview = labels.slice(0, 3).join(", ");
+  const suffix = labels.length > 3 ? ` and ${labels.length - 3} more` : "";
+  return labels.length ? `\n\n${preview}${suffix}` : "";
+}
+
+async function confirmMoveToTrash(labels) {
+  const count = labels.length;
+  const noun = count === 1 ? "job" : "jobs";
+  return confirmAction({
+    title: "Move to Recycle Bin?",
+    message: `Move ${count} ${noun} to the Recycle Bin? You can restore them within ${trashRetentionDays} days. After that they are permanently deleted.${formatJobListPreview(labels)}`,
+    confirmLabel: "Move to Recycle Bin",
+    danger: true,
+  });
+}
+
+async function confirmPermanentDelete(labels) {
+  const count = labels.length;
+  const noun = count === 1 ? "job" : "jobs";
+  return confirmAction({
+    title: "Delete permanently?",
+    message: `Permanently delete ${count} ${noun}? This action is irreversible and cannot be undone.${formatJobListPreview(labels)}`,
+    confirmLabel: "Delete permanently",
+    danger: true,
+  });
 }
 
 async function api(path, options = {}) {
@@ -156,6 +224,75 @@ function filterJobs(jobs) {
   return jobs.filter(({ job }) => jobSearchText(job).includes(q));
 }
 
+function getFilteredJobs() {
+  return filterJobs(allJobs);
+}
+
+function updateBulkBar() {
+  const count = selectedJobIndices.size;
+  $("#bulk-bar").classList.toggle("hidden", count === 0);
+  $("#bulk-count").textContent = `${count} selected`;
+}
+
+function updateSelectAllButton() {
+  const btn = $("#btn-select-all-filtered");
+  if (!btn) return;
+  const filtered = getFilteredJobs();
+  if (!filtered.length) {
+    btn.disabled = true;
+    btn.textContent = "Select all";
+    return;
+  }
+  btn.disabled = false;
+  const allSelected = filtered.every(({ index }) => selectedJobIndices.has(index));
+  btn.textContent = allSelected ? "Deselect all" : "Select all";
+}
+
+function syncRowSelectionStyles() {
+  jobsBody.querySelectorAll("tr.job-row").forEach((row) => {
+    const index = parseInt(row.dataset.index, 10);
+    const selected = selectedJobIndices.has(index);
+    row.classList.toggle("selected", selected);
+    row.setAttribute("aria-selected", selected ? "true" : "false");
+  });
+}
+
+function toggleJobSelection(index) {
+  if (selectedJobIndices.has(index)) selectedJobIndices.delete(index);
+  else selectedJobIndices.add(index);
+  updateBulkBar();
+  updateSelectAllButton();
+  syncRowSelectionStyles();
+}
+
+function clearSelection() {
+  selectedJobIndices.clear();
+  updateBulkBar();
+  updateSelectAllButton();
+  syncRowSelectionStyles();
+}
+
+function toggleSelectAllFiltered() {
+  const filtered = getFilteredJobs();
+  const allSelected = filtered.length > 0 && filtered.every(({ index }) => selectedJobIndices.has(index));
+  if (allSelected) {
+    filtered.forEach(({ index }) => selectedJobIndices.delete(index));
+  } else {
+    filtered.forEach(({ index }) => selectedJobIndices.add(index));
+  }
+  updateBulkBar();
+  updateSelectAllButton();
+  syncRowSelectionStyles();
+}
+
+function pruneSelection() {
+  const valid = new Set(allJobs.map(({ index }) => index));
+  for (const index of selectedJobIndices) {
+    if (!valid.has(index)) selectedJobIndices.delete(index);
+  }
+  updateBulkBar();
+  updateSelectAllButton();
+}
 function updatePaginationControls(totalPages, total, filteredTotal) {
   const suffix =
     filteredTotal !== total ? ` (${filteredTotal} of ${total} shown)` : ` (${total} total)`;
@@ -170,11 +307,13 @@ function renderJobs() {
   if (!allJobs.length) {
     jobsBody.innerHTML = '<tr><td colspan="5" class="empty">No applications yet. Add one above.</td></tr>';
     updatePaginationControls(1, 0, 0);
+    updateSelectAllButton();
     return;
   }
   if (!items.length) {
     jobsBody.innerHTML = `<tr><td colspan="5" class="empty">No jobs match “${escapeHtml(searchQuery.trim())}”.</td></tr>`;
     updatePaginationControls(1, allJobs.length, 0);
+    updateSelectAllButton();
     return;
   }
 
@@ -189,7 +328,9 @@ function renderJobs() {
       const notes = job.notes
         ? `<span class="notes-preview">${escapeHtml(job.notes)}</span>`
         : '<span class="missing">—</span>';
-      return `<tr>
+      const selectedClass = selectedJobIndices.has(index) ? "selected" : "";
+      const ariaSelected = selectedJobIndices.has(index) ? "true" : "false";
+      return `<tr class="job-row ${selectedClass}" data-index="${index}" aria-selected="${ariaSelected}" tabindex="0">
         <td>${titleCell(job, index)}</td>
         <td>${statusSelect(index, job.status || statusesConfig.default_status)}</td>
         <td>${attachmentCell(job)}</td>
@@ -202,6 +343,19 @@ function renderJobs() {
       </tr>`;
     })
     .join("");
+
+  jobsBody.querySelectorAll("tr.job-row").forEach((row) => {
+    row.addEventListener("click", (e) => {
+      if (e.target.closest("a, button, select, input, textarea, label")) return;
+      toggleJobSelection(parseInt(row.dataset.index, 10));
+    });
+    row.addEventListener("keydown", (e) => {
+      if (e.key !== "Enter" && e.key !== " ") return;
+      if (e.target.closest("a, button, select, input, textarea, label")) return;
+      e.preventDefault();
+      toggleJobSelection(parseInt(row.dataset.index, 10));
+    });
+  });
 
   jobsBody.querySelectorAll(".status-select").forEach((sel) => {
     sel.addEventListener("change", async (e) => {
@@ -227,6 +381,8 @@ function renderJobs() {
   jobsBody.querySelectorAll(".btn-add-link").forEach((btn) => {
     btn.addEventListener("click", () => openLinkDialog(parseInt(btn.dataset.index, 10)));
   });
+
+  updateSelectAllButton();
 }
 
 function openLinkDialog(index) {
@@ -418,6 +574,7 @@ function fillStatusSelect(selectEl, selected) {
 
 async function loadStatuses() {
   statusesConfig = await api("/api/statuses");
+  fillStatusSelect($("#bulk-status"), statusesConfig.default_status);
 }
 
 async function loadProfile() {
@@ -432,11 +589,52 @@ async function loadProfile() {
 async function loadJobs(resetPage = true) {
   allJobs = await api("/api/jobs");
   if (resetPage) currentPage = 1;
+  pruneSelection();
   renderJobs();
 }
 
+async function bulkChangeStatus() {
+  const indices = [...selectedJobIndices];
+  if (!indices.length) return;
+  const status = $("#bulk-status").value;
+  try {
+    const result = await api("/api/jobs/bulk", {
+      method: "POST",
+      body: JSON.stringify({ indices, action: "update_status", status }),
+    });
+    clearSelection();
+    await loadJobs(false);
+    showMessage(`Updated status for ${result.updated} job${result.updated === 1 ? "" : "s"}`);
+  } catch (err) {
+    showMessage(err.message, true);
+  }
+}
+
+async function bulkDelete() {
+  const indices = [...selectedJobIndices];
+  if (!indices.length) return;
+  const labels = indices
+    .map((idx) => allJobs.find((item) => item.index === idx))
+    .filter(Boolean)
+    .map((item) => title(item.job));
+  if (!(await confirmMoveToTrash(labels))) return;
+  try {
+    const result = await api("/api/jobs/bulk", {
+      method: "POST",
+      body: JSON.stringify({ indices, action: "delete" }),
+    });
+    clearSelection();
+    await loadJobs(true);
+    await loadTrash(false);
+    showTrashView();
+    showMessage(`Moved ${result.updated} job${result.updated === 1 ? "" : "s"} to Recycle Bin`);
+  } catch (err) {
+    showMessage(err.message, true);
+  }
+}
+
 async function pollRevision() {
-  if (dialog.open || linkDialog.open || profileDialog.open) return;
+  if (dialog.open || linkDialog.open || profileDialog.open || confirmDialog.open) return;
   try {
     const { revision } = await api("/api/revision");
     if (revision === lastRevision) return;
@@ -444,6 +642,7 @@ async function pollRevision() {
     lastRevision = revision;
     if (hadPrior) {
       await loadJobs(false);
+      await loadTrash(false);
       showMessage("Applications updated");
     }
   } catch {
@@ -519,12 +718,14 @@ btnDelete.addEventListener("click", async () => {
   if (!indexStr) return;
   const job = allJobs.find((i) => i.index === parseInt(indexStr, 10))?.job;
   const label = job ? title(job) : "this application";
-  if (!confirm(`Delete "${label}"? This cannot be undone.`)) return;
+  if (!(await confirmMoveToTrash([label]))) return;
   try {
     await api(`/api/jobs/${indexStr}`, { method: "DELETE" });
     dialog.close();
-    showMessage("Deleted");
     await loadJobs(true);
+    await loadTrash(false);
+    showTrashView();
+    showMessage("Moved to Recycle Bin");
   } catch (err) {
     showMessage(err.message, true);
   }
@@ -560,6 +761,187 @@ $("#job-search").addEventListener("input", (e) => {
   renderJobs();
 });
 
+$("#btn-select-all-filtered").addEventListener("click", () => toggleSelectAllFiltered());
+$("#btn-bulk-status").addEventListener("click", () => bulkChangeStatus());
+$("#btn-bulk-delete").addEventListener("click", () => bulkDelete());
+$("#btn-bulk-clear").addEventListener("click", () => clearSelection());
+
+function updateTrashBulkBar() {
+  const count = selectedTrashIndices.size;
+  $("#trash-bulk-bar").classList.toggle("hidden", count === 0);
+  $("#trash-bulk-count").textContent = `${count} selected`;
+}
+
+function clearTrashSelection() {
+  selectedTrashIndices.clear();
+  updateTrashBulkBar();
+  trashBody.querySelectorAll("tr.trash-row").forEach((row) => {
+    row.classList.remove("selected");
+    row.setAttribute("aria-selected", "false");
+  });
+}
+
+function toggleTrashSelection(index) {
+  if (selectedTrashIndices.has(index)) selectedTrashIndices.delete(index);
+  else selectedTrashIndices.add(index);
+  updateTrashBulkBar();
+  const row = trashBody.querySelector(`tr.trash-row[data-index="${index}"]`);
+  if (row) {
+    const selected = selectedTrashIndices.has(index);
+    row.classList.toggle("selected", selected);
+    row.setAttribute("aria-selected", selected ? "true" : "false");
+  }
+}
+
+function pruneTrashSelection() {
+  const valid = new Set(allTrash.map(({ index }) => index));
+  for (const index of selectedTrashIndices) {
+    if (!valid.has(index)) selectedTrashIndices.delete(index);
+  }
+  updateTrashBulkBar();
+}
+
+function showJobsView() {
+  jobsSubView = "jobs";
+  $("#jobs-section-intro").hidden = false;
+  $("#jobs-view").hidden = false;
+  $("#trash-view").hidden = true;
+}
+
+function showTrashView() {
+  jobsSubView = "trash";
+  $("#jobs-section-intro").hidden = true;
+  $("#jobs-view").hidden = true;
+  $("#trash-view").hidden = false;
+  loadTrash(false);
+}
+
+function renderTrash() {
+  const badge = $("#trash-count-badge");
+  if (badge) badge.textContent = String(allTrash.length);
+
+  if (!allTrash.length) {
+    trashBody.innerHTML = '<tr><td colspan="4" class="empty">Recycle Bin is empty.</td></tr>';
+    updateTrashBulkBar();
+    return;
+  }
+
+  trashBody.innerHTML = allTrash
+    .map(({ index, job, days_remaining: daysRemaining }) => {
+      const selectedClass = selectedTrashIndices.has(index) ? "selected" : "";
+      const ariaSelected = selectedTrashIndices.has(index) ? "true" : "false";
+      const deletedLabel = formatDateTime(job.deleted_at || "");
+      const remainingLabel =
+        daysRemaining === 0 ? "Today" : `${daysRemaining} day${daysRemaining === 1 ? "" : "s"}`;
+      return `<tr class="trash-row job-row ${selectedClass}" data-index="${index}" aria-selected="${ariaSelected}" tabindex="0">
+        <td><strong>${escapeHtml(title(job))}</strong></td>
+        <td>${escapeHtml(deletedLabel || "—")}</td>
+        <td>${escapeHtml(remainingLabel)}</td>
+        <td class="actions">
+          <div class="actions-inner">
+            <button type="button" class="small btn-trash-restore" data-index="${index}">Restore</button>
+            <button type="button" class="small danger btn-trash-permanent" data-index="${index}">Delete permanently</button>
+          </div>
+        </td>
+      </tr>`;
+    })
+    .join("");
+
+  trashBody.querySelectorAll("tr.trash-row").forEach((row) => {
+    row.addEventListener("click", (e) => {
+      if (e.target.closest("button")) return;
+      toggleTrashSelection(parseInt(row.dataset.index, 10));
+    });
+    row.addEventListener("keydown", (e) => {
+      if (e.key !== "Enter" && e.key !== " ") return;
+      if (e.target.closest("button")) return;
+      e.preventDefault();
+      toggleTrashSelection(parseInt(row.dataset.index, 10));
+    });
+  });
+
+  trashBody.querySelectorAll(".btn-trash-restore").forEach((btn) => {
+    btn.addEventListener("click", async (e) => {
+      e.stopPropagation();
+      await restoreTrashJobs([parseInt(btn.dataset.index, 10)]);
+    });
+  });
+
+  trashBody.querySelectorAll(".btn-trash-permanent").forEach((btn) => {
+    btn.addEventListener("click", async (e) => {
+      e.stopPropagation();
+      await permanentDeleteTrashJobs([parseInt(btn.dataset.index, 10)]);
+    });
+  });
+
+  updateTrashBulkBar();
+}
+
+async function loadTrash(resetSelection = true) {
+  try {
+    const [items, info] = await Promise.all([api("/api/trash"), api("/api/trash/info")]);
+    allTrash = items;
+    trashRetentionDays = info.retention_days || 30;
+    $("#trash-subtitle").textContent = `Deleted jobs are kept for ${trashRetentionDays} days, then removed automatically.`;
+    if (info.purged > 0) {
+      showMessage(`Permanently removed ${info.purged} expired job${info.purged === 1 ? "" : "s"}`);
+    }
+    if (resetSelection) clearTrashSelection();
+    else pruneTrashSelection();
+    renderTrash();
+  } catch (err) {
+    trashBody.innerHTML = `<tr><td colspan="4" class="empty">Failed to load Recycle Bin: ${escapeHtml(err.message)}</td></tr>`;
+  }
+}
+
+async function restoreTrashJobs(indices) {
+  if (!indices.length) return;
+  const labels = indices
+    .map((idx) => allTrash.find((item) => item.index === idx))
+    .filter(Boolean)
+    .map((item) => title(item.job));
+  const count = indices.length;
+  const ok = await confirmAction({
+    title: "Restore jobs?",
+    message: `Restore ${count} job${count === 1 ? "" : "s"} to Job Tracker?${formatJobListPreview(labels)}`,
+    confirmLabel: "Restore",
+  });
+  if (!ok) return;
+  try {
+    const result = await api("/api/trash/bulk", {
+      method: "POST",
+      body: JSON.stringify({ indices, action: "restore" }),
+    });
+    clearTrashSelection();
+    await loadTrash(false);
+    await loadJobs(false);
+    showJobsView();
+    showMessage(`Restored ${result.updated} job${result.updated === 1 ? "" : "s"}`);
+  } catch (err) {
+    showMessage(err.message, true);
+  }
+}
+
+async function permanentDeleteTrashJobs(indices) {
+  if (!indices.length) return;
+  const labels = indices
+    .map((idx) => allTrash.find((item) => item.index === idx))
+    .filter(Boolean)
+    .map((item) => title(item.job));
+  if (!(await confirmPermanentDelete(labels))) return;
+  try {
+    const result = await api("/api/trash/bulk", {
+      method: "POST",
+      body: JSON.stringify({ indices, action: "permanent_delete" }),
+    });
+    clearTrashSelection();
+    await loadTrash(false);
+    showMessage(`Permanently deleted ${result.updated} job${result.updated === 1 ? "" : "s"}`);
+  } catch (err) {
+    showMessage(err.message, true);
+  }
+}
+
 function switchTab(tabName) {
   document.querySelectorAll(".app-tab").forEach((tab) => {
     const selected = tab.dataset.tab === tabName;
@@ -571,11 +953,24 @@ function switchTab(tabName) {
     panel.classList.toggle("active", show);
     panel.hidden = !show;
   });
+  if (tabName === "jobs" && jobsSubView === "trash") {
+    showTrashView();
+  }
 }
 
 document.querySelectorAll(".app-tab").forEach((tab) => {
-  tab.addEventListener("click", () => switchTab(tab.dataset.tab));
+  tab.addEventListener("click", () => {
+    if (tab.dataset.tab === "jobs") showJobsView();
+    switchTab(tab.dataset.tab);
+  });
 });
+
+$("#btn-open-trash").addEventListener("click", () => showTrashView());
+$("#btn-back-jobs").addEventListener("click", () => showJobsView());
+
+$("#btn-trash-restore").addEventListener("click", () => restoreTrashJobs([...selectedTrashIndices]));
+$("#btn-trash-permanent").addEventListener("click", () => permanentDeleteTrashJobs([...selectedTrashIndices]));
+$("#btn-trash-clear").addEventListener("click", () => clearTrashSelection());
 
 $("#btn-edit-profile").addEventListener("click", () => openProfileEditor());
 
@@ -592,6 +987,7 @@ $("#btn-profile-cancel").addEventListener("click", () => {
     const { revision } = await api("/api/revision");
     lastRevision = revision;
     await loadJobs();
+    await loadTrash(false);
     startRevisionPolling();
   } catch (err) {
     jobsBody.innerHTML = `<tr><td colspan="5" class="empty">Failed to load: ${escapeHtml(err.message)}</td></tr>`;

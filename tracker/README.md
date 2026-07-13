@@ -74,6 +74,12 @@ fit_rating, notes, cv_file, cover_letter_file, source
 | POST | `/api/jobs` | Create job |
 | PUT | `/api/jobs/{index}` | Update job |
 | DELETE | `/api/jobs/{index}` | Delete job |
+| POST | `/api/jobs/bulk` | Bulk update status or move to Recycle Bin (`{ indices, action, status? }`) |
+| GET | `/api/trash` | List Recycle Bin jobs (with `days_remaining`) |
+| GET | `/api/trash/info` | Retention policy + expired purge count |
+| POST | `/api/trash/{index}/restore` | Restore one job to tracker |
+| DELETE | `/api/trash/{index}` | Permanently delete one job |
+| POST | `/api/trash/bulk` | Bulk restore or permanent delete |
 | GET | `/api/revision` | Data revision (poll to detect CSV changes from `/apply`) |
 | POST | `/api/revision` | Notify hook (called by `upsert_application.py` after writes) |
 | GET | `/api/profile` | Candidate profile sections from `AGENTS.md` |

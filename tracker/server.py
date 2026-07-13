@@ -16,7 +16,7 @@ import json
 import os
 from contextlib import asynccontextmanager
 from pathlib import Path
-from typing import Any
+from typing import Any, Literal
 
 from fastapi import FastAPI, HTTPException, Query
 from fastapi.responses import FileResponse
@@ -29,6 +29,16 @@ from pydantic import BaseModel, Field
 from csv_store import COLUMNS, REPO_ROOT, TRACKER_DIR, ensure_csv_exists, new_row, read_rows, touch_modified, write_rows
 from profile import parse_profile, write_profile
 from revision import bump_revision, get_revision
+from trash_store import (
+    RETENTION_DAYS,
+    days_until_purge,
+    permanent_delete_trash_indices,
+    purge_expired_trash,
+    read_trash_rows,
+    restore_trash_index,
+    soft_delete_indices,
+    sort_trash_newest_first,
+)
 
 STATUSES_PATH = TRACKER_DIR / "statuses.json"
 STATIC_DIR = TRACKER_DIR / "static"
@@ -43,6 +53,7 @@ FILE_ALLOWLIST_PREFIXES = (
 @asynccontextmanager
 async def lifespan(_app: FastAPI):
     ensure_csv_exists()
+    purge_expired_trash()
     yield
 
 
@@ -98,6 +109,32 @@ class JobUpdate(BaseModel):
 class JobWithIndex(BaseModel):
     index: int
     job: dict[str, str]
+
+
+class BulkJobRequest(BaseModel):
+    indices: list[int]
+    action: Literal["update_status", "delete"]
+    status: str | None = None
+
+
+class BulkJobResponse(BaseModel):
+    updated: int
+
+
+class TrashJobWithMeta(BaseModel):
+    index: int
+    job: dict[str, str]
+    days_remaining: int
+
+
+class BulkTrashRequest(BaseModel):
+    indices: list[int]
+    action: Literal["restore", "permanent_delete"]
+
+
+class TrashInfoResponse(BaseModel):
+    retention_days: int
+    purged: int
 
 
 class StatusesConfig(BaseModel):
@@ -216,11 +253,107 @@ def update_job(index: int, body: JobUpdate) -> JobWithIndex:
 
 @app.delete("/api/jobs/{index}", status_code=204)
 def delete_job(index: int) -> None:
+    try:
+        soft_delete_indices([index])
+    except IndexError as exc:
+        raise HTTPException(status_code=404, detail=str(exc)) from exc
+
+
+@app.post("/api/jobs/bulk")
+def bulk_jobs(body: BulkJobRequest) -> BulkJobResponse:
+    if not body.indices:
+        raise HTTPException(status_code=400, detail="No jobs selected")
+    unique = sorted(set(body.indices))
     rows = read_rows()
-    if index < 0 or index >= len(rows):
-        raise HTTPException(status_code=404, detail="Job not found")
-    rows.pop(index)
-    write_rows(rows)
+    for idx in unique:
+        if idx < 0 or idx >= len(rows):
+            raise HTTPException(status_code=404, detail=f"Job not found at index {idx}")
+
+    if body.action == "delete":
+        try:
+            updated = soft_delete_indices(unique)
+        except IndexError as exc:
+            raise HTTPException(status_code=404, detail=str(exc)) from exc
+        return BulkJobResponse(updated=updated)
+
+    if body.action == "update_status":
+        if body.status is None:
+            raise HTTPException(status_code=400, detail="status is required for update_status")
+        status = validate_status(body.status)
+        for idx in unique:
+            rows[idx]["status"] = status
+            touch_modified(rows[idx])
+        write_rows(rows)
+        return BulkJobResponse(updated=len(unique))
+
+    raise HTTPException(status_code=400, detail="Invalid bulk action")
+
+
+@app.get("/api/trash")
+def list_trash() -> list[TrashJobWithMeta]:
+    purge_expired_trash()
+    return [
+        TrashJobWithMeta(
+            index=idx,
+            job=row,
+            days_remaining=days_until_purge(row.get("deleted_at", "")),
+        )
+        for idx, row in sort_trash_newest_first(read_trash_rows())
+    ]
+
+
+@app.get("/api/trash/info")
+def trash_info() -> TrashInfoResponse:
+    purged = purge_expired_trash()
+    return TrashInfoResponse(retention_days=RETENTION_DAYS, purged=purged)
+
+
+@app.post("/api/trash/{index}/restore")
+def restore_trash_job(index: int) -> JobWithIndex:
+    try:
+        row = restore_trash_index(index)
+    except IndexError as exc:
+        raise HTTPException(status_code=404, detail=str(exc)) from exc
+    rows = read_rows()
+    return JobWithIndex(index=len(rows) - 1, job=row)
+
+
+@app.delete("/api/trash/{index}", status_code=204)
+def permanent_delete_trash_job(index: int) -> None:
+    try:
+        permanent_delete_trash_indices([index])
+    except IndexError as exc:
+        raise HTTPException(status_code=404, detail=str(exc)) from exc
+
+
+@app.post("/api/trash/bulk")
+def bulk_trash(body: BulkTrashRequest) -> BulkJobResponse:
+    if not body.indices:
+        raise HTTPException(status_code=400, detail="No trash items selected")
+    unique = sorted(set(body.indices))
+    trash = read_trash_rows()
+    for idx in unique:
+        if idx < 0 or idx >= len(trash):
+            raise HTTPException(status_code=404, detail=f"Trash item not found at index {idx}")
+
+    if body.action == "restore":
+        restored = 0
+        for idx in sorted(unique, reverse=True):
+            try:
+                restore_trash_index(idx)
+                restored += 1
+            except IndexError as exc:
+                raise HTTPException(status_code=404, detail=str(exc)) from exc
+        return BulkJobResponse(updated=restored)
+
+    if body.action == "permanent_delete":
+        try:
+            deleted = permanent_delete_trash_indices(unique)
+        except IndexError as exc:
+            raise HTTPException(status_code=404, detail=str(exc)) from exc
+        return BulkJobResponse(updated=deleted)
+
+    raise HTTPException(status_code=400, detail="Invalid bulk trash action")
 
 
 @app.get("/api/statuses")

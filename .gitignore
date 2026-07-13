@@ -67,6 +67,7 @@ documents/applications/**
 
 # Personal job search tracking
 job_search_tracker.csv
+job_search_tracker_trash.csv
 tracker/.data_revision
 tracker/latex-cleanup.log
 
