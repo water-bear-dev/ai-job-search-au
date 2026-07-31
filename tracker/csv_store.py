@@ -282,8 +282,12 @@ def upsert_application(
         row["channel"] = channel.strip()
     if fit_rating.strip():
         row["fit_rating"] = fit_rating.strip()
-    if notes.strip() and not row["notes"]:
-        row["notes"] = notes.strip()
+    if notes.strip():
+        existing_notes = (row.get("notes") or "").strip()
+        # Fill empty notes, or replace the auto placeholder (e.g. freeform
+        # requirements saved on a later /apply re-run). Keep custom notes.
+        if not existing_notes or existing_notes.lower() == "auto-tracked by /apply":
+            row["notes"] = notes.strip()
     if sector.strip() and not row["sector"]:
         row["sector"] = sector.strip()
     if role_type.strip() and not row["role_type"]:

@@ -388,6 +388,29 @@ Replace all placeholder tokens in the search queries file with the user's actual
   - Priority 3: Adjacent roles they could pivot into
   - Priority 4: Broader roles (wider net)
 
+### 10. Optional internal application profile
+
+After the main `01-candidate-profile.md` is populated, ask once:
+
+> Do you also want a separate **internal application profile** for roles at your current employer (different job titles / framing from your external CV)?
+>
+> - **Yes** — I'll create an overlay (e.g. `skills/job-application-assistant/01-candidate-profile.internal-nab.md`) and collect internal titles, team tags, and framing. `/apply` will use it automatically for that employer.
+> - **No** — use a **unified profile** (`01-candidate-profile.md` only) for all applications, including internal ones.
+
+**If Yes:**
+
+1. Ask for current employer name(s) that should trigger the overlay (e.g. "National Australia Bank", "NAB")
+2. Ask for internal titles for current/recent roles, team/org tags, and any framing that differs from the external CV
+3. Write `skills/job-application-assistant/01-candidate-profile.internal-<employer>.md` (use a short slug, e.g. `internal-nab`) based on the main profile plus those deltas
+4. Include short **Internal positioning emphasis** and **Targets (internal)** sections when the user provides them
+5. Do **not** leave `INTERNAL_PROFILE_PLACEHOLDER` in the live overlay file
+
+**If No:**
+
+1. Do **not** create a real overlay
+2. If `skills/job-application-assistant/01-candidate-profile.internal-*.md` exists only as a seeded placeholder (contains `INTERNAL_PROFILE_PLACEHOLDER`), delete it so apply stays in unified mode
+3. Completion summary should say: unified profile mode
+
 ---
 
 ## Step 4: Confirm & Next Steps
@@ -398,6 +421,7 @@ Present a summary:
 >
 > - `AGENTS.md` - Your full candidate profile
 > - `skills/job-application-assistant/01-candidate-profile.md` - Structured profile
+> - `skills/job-application-assistant/01-candidate-profile.internal-*.md` - Internal overlay (only if you opted in) **or** unified profile mode (no overlay)
 > - `skills/job-application-assistant/02-behavioral-profile.md` - Behavioral assessment
 > - `skills/job-application-assistant/04-job-evaluation.md` - Personalized evaluation framework
 > - `skills/job-application-assistant/05-cv-templates.md` - CV templates with your profile statements
@@ -415,6 +439,10 @@ If Path A left any STAR stubs in `07-interview-prep.md`, also note:
 
 > Path A flagged [N] STAR candidate stubs in `07-interview-prep.md` that need your situation/task/action/result details before you use them in interviews.
 
+If an internal overlay was created, also note:
+
+> Internal applications at [employer] will use `01-candidate-profile.internal-<slug>.md`. External applications use the main profile.
+
 ---
 
 ## Design Principles
@@ -422,6 +450,7 @@ If Path A left any STAR stubs in `07-interview-prep.md`, also note:
 - Three onboarding paths converge on the same skill files. Step 0 picks the right path based on what's in `documents/`. Steps 3 and 4 are shared.
 - Path A is read-before-write and idempotent. Re-running it as documents are added does not duplicate or overwrite existing content; conflicts are surfaced for explicit resolution.
 - Path A labels inferred behavioral or style additions so the user can review them critically before relying on them.
+- An optional internal overlay is created only when the user opts in (Step 3 item 10). Otherwise the workspace stays on a unified profile.
 - Each section in Path C is a natural conversation, not a form. The user can skip optional sections.
 - Synthesize answers into structured formats (the user does not need to know markdown or LaTeX).
 - Can be re-run with `--section <name>` to update specific sections (e.g., `/setup --section search` to reconfigure job search queries without re-doing the full profile).

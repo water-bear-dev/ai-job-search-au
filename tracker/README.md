@@ -40,6 +40,8 @@ Set `default_status` for new rows (used when `/apply` auto-tracks an application
 
 When `/apply` finishes drafting a CV and cover letter, it runs `tracker/upsert_application.py` to create or update a row keyed by `company` + `role`. File paths, source URL, and fit rating are filled in; status defaults to `default_status` (`draft`).
 
+For **pasted / freeform postings with no URL**, `/apply` and `/applyCVonly` pass the job requirements into `--notes` so they remain visible in the tracker (there is no link to reopen the posting).
+
 Manual upsert:
 
 ```bash
@@ -49,6 +51,17 @@ python tracker/upsert_application.py \
   --cv-file "applied_jobs/20260622-AcmeCorp-DataEngineer/Andrew_Pham_CV.tex" \
   --cover-letter-file "applied_jobs/20260622-AcmeCorp-DataEngineer/Andrew_Pham_CoverLetter.tex" \
   --source "https://www.seek.com.au/job/92686067"
+```
+
+Freeform example (no URL):
+
+```bash
+python tracker/upsert_application.py \
+  --company "Acme Corp" \
+  --role "Data Engineer" \
+  --cv-file "applied_jobs/20260622-AcmeCorp-DataEngineer/Andrew_Pham_CV.tex" \
+  --channel paste \
+  --notes "Requirements: Python, AWS, …"
 ```
 
 Paths are computed by `tools/application_paths.py` (`<YYYYMMDD>-<companyName>-<position>` folders).

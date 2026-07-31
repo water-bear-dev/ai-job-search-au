@@ -2,6 +2,7 @@ let statusesConfig = { default_status: "draft", statuses: [], labels: {} };
 let lastRevision = 0;
 let allJobs = [];
 let searchQuery = "";
+let fitFilter = "";
 let profileData = { sections: [] };
 let profileEditors = new Map();
 let turndownService = null;
@@ -124,6 +125,41 @@ function statusLabel(code) {
   return statusesConfig.labels?.[code] || code;
 }
 
+const FIT_LEVELS = {
+  strong: { label: "Strong", storage: "strong fit" },
+  moderate: { label: "Moderate", storage: "moderate fit" },
+  weak: { label: "Weak", storage: "weak fit" },
+  unset: { label: "Unset", storage: "" },
+};
+
+function normalizeFitLevel(fitRating) {
+  const raw = (fitRating || "").trim().toLowerCase();
+  if (!raw) return "unset";
+  if (raw.includes("strong") || raw === "high") return "strong";
+  if (raw.includes("weak") || raw.includes("poor") || raw === "low") return "weak";
+  if (raw.includes("moderate") || raw.includes("good") || raw === "medium") return "moderate";
+  return "unset";
+}
+
+function fitLabel(level) {
+  return FIT_LEVELS[level]?.label || FIT_LEVELS.unset.label;
+}
+
+function fitStorageValue(level) {
+  return FIT_LEVELS[level]?.storage ?? "";
+}
+
+function fitCell(job) {
+  const level = normalizeFitLevel(job.fit_rating);
+  if (level === "unset") return '<span class="missing">—</span>';
+  return `<span class="fit-badge fit-${level}">${escapeHtml(fitLabel(level))}</span>`;
+}
+
+function fitSelectValue(fitRating) {
+  const level = normalizeFitLevel(fitRating);
+  return fitStorageValue(level);
+}
+
 function formatDateTime(iso) {
   if (!iso) return "";
   // Date-only legacy values (YYYY-MM-DD) parse reliably as local midnight
@@ -220,8 +256,19 @@ function jobSearchText(job) {
 
 function filterJobs(jobs) {
   const q = searchQuery.trim().toLowerCase();
-  if (!q) return jobs;
-  return jobs.filter(({ job }) => jobSearchText(job).includes(q));
+  return jobs.filter(({ job }) => {
+    if (fitFilter && normalizeFitLevel(job.fit_rating) !== fitFilter) return false;
+    if (q && !jobSearchText(job).includes(q)) return false;
+    return true;
+  });
+}
+
+function activeFilterDescription() {
+  const parts = [];
+  const q = searchQuery.trim();
+  if (q) parts.push(`“${q}”`);
+  if (fitFilter) parts.push(`fit: ${fitLabel(fitFilter)}`);
+  return parts.join(", ");
 }
 
 function getFilteredJobs() {
@@ -305,13 +352,14 @@ function renderJobs() {
   const filtered = filterJobs(allJobs);
   const items = filtered;
   if (!allJobs.length) {
-    jobsBody.innerHTML = '<tr><td colspan="5" class="empty">No applications yet. Add one above.</td></tr>';
+    jobsBody.innerHTML = '<tr><td colspan="6" class="empty">No applications yet. Add one above.</td></tr>';
     updatePaginationControls(1, 0, 0);
     updateSelectAllButton();
     return;
   }
   if (!items.length) {
-    jobsBody.innerHTML = `<tr><td colspan="5" class="empty">No jobs match “${escapeHtml(searchQuery.trim())}”.</td></tr>`;
+    const desc = activeFilterDescription() || "your filters";
+    jobsBody.innerHTML = `<tr><td colspan="6" class="empty">No jobs match ${escapeHtml(desc)}.</td></tr>`;
     updatePaginationControls(1, allJobs.length, 0);
     updateSelectAllButton();
     return;
@@ -333,6 +381,7 @@ function renderJobs() {
       return `<tr class="job-row ${selectedClass}" data-index="${index}" aria-selected="${ariaSelected}" tabindex="0">
         <td>${titleCell(job, index)}</td>
         <td>${statusSelect(index, job.status || statusesConfig.default_status)}</td>
+        <td>${fitCell(job)}</td>
         <td>${attachmentCell(job)}</td>
         <td>${notes}</td>
         <td class="actions">
@@ -662,6 +711,7 @@ function openAdd() {
   $("#job-index").value = "";
   form.reset();
   fillStatusSelect($("#field-status"), statusesConfig.default_status);
+  $("#field-fit").value = "";
   btnDelete.classList.add("hidden");
   dialog.showModal();
 }
@@ -682,6 +732,7 @@ async function openEdit(index) {
   $("#field-cv").value = job.cv_file || "";
   $("#field-cover").value = job.cover_letter_file || "";
   fillStatusSelect($("#field-status"), job.status || statusesConfig.default_status);
+  $("#field-fit").value = fitSelectValue(job.fit_rating);
   btnDelete.classList.remove("hidden");
   dialog.showModal();
 }
@@ -693,6 +744,7 @@ form.addEventListener("submit", async (e) => {
     role: $("#field-role").value.trim(),
     source: $("#field-source").value.trim(),
     status: $("#field-status").value,
+    fit_rating: $("#field-fit").value,
     notes: $("#field-notes").value.trim(),
     cv_file: $("#field-cv").value.trim(),
     cover_letter_file: $("#field-cover").value.trim(),
@@ -757,6 +809,12 @@ $("#btn-next").addEventListener("click", () => {
 
 $("#job-search").addEventListener("input", (e) => {
   searchQuery = e.target.value;
+  currentPage = 1;
+  renderJobs();
+});
+
+$("#fit-filter").addEventListener("change", (e) => {
+  fitFilter = e.target.value;
   currentPage = 1;
   renderJobs();
 });
@@ -990,6 +1048,6 @@ $("#btn-profile-cancel").addEventListener("click", () => {
     await loadTrash(false);
     startRevisionPolling();
   } catch (err) {
-    jobsBody.innerHTML = `<tr><td colspan="5" class="empty">Failed to load: ${escapeHtml(err.message)}</td></tr>`;
+    jobsBody.innerHTML = `<tr><td colspan="6" class="empty">Failed to load: ${escapeHtml(err.message)}</td></tr>`;
   }
 })();

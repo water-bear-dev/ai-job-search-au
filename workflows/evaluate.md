@@ -18,10 +18,14 @@ Follow **Step 0** in `workflows/apply.md` exactly:
 
 ## Step 1: Evaluate Fit
 
+### Profile selection (unified vs internal overlay)
+
+Follow the same profile selection rules as **Step 1** in `workflows/apply.md` (live `01-candidate-profile.internal-*.md` without `INTERNAL_PROFILE_PLACEHOLDER`; NAB/National Australia Bank → internal overlay; confirm once; allow override to main).
+
 Read the evaluation framework:
 
 - `skills/job-application-assistant/04-job-evaluation.md`
-- `skills/job-application-assistant/01-candidate-profile.md`
+- The file at `candidate_profile_path`
 
 Using the framework from `04-job-evaluation.md`, evaluate the posting (`description` plus metadata from Step 0) against the candidate's profile. If the salary lookup tool is configured, run:
 
@@ -38,6 +42,7 @@ Present the evaluation to the user with:
 3. **Behavioral/culture match** — how behavioral profile fits the role/company culture
 4. **Salary benchmark** — salary index for the company (if available)
 5. **Overall fit score** and recommendation (strong fit / moderate fit / weak fit)
+6. **Profile mode** — `main` or `internal` (and which file was used)
 
 Include a one-line summary of the parsed posting: company, role, location, channel, and `source_url` (if any).
 

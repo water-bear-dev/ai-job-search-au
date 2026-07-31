@@ -11,6 +11,10 @@
 @page {
   size: A4;
   margin: 1.8cm 2cm;
+  /* No printed page numbers (Chrome/Edge otherwise may add them) */
+  @bottom-center { content: none; }
+  @bottom-right { content: none; }
+  @bottom-left { content: none; }
 }
 
 * {

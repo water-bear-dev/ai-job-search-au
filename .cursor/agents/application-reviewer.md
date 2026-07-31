@@ -16,7 +16,7 @@ Use WebSearch and WebFetch to research:
 
 ### 2. Read Reference Materials (content-critique only)
 Read these four files — and only these — to ground your critique:
-- `skills/job-application-assistant/01-candidate-profile.md`
+- The candidate profile path passed by the parent (`01-candidate-profile.md` or a live `01-candidate-profile.internal-*.md` overlay). Do not invent a path; if none is passed, use `skills/job-application-assistant/01-candidate-profile.md`.
 - `skills/job-application-assistant/02-behavioral-profile.md` — use this specifically to check whether the cover letter's voice matches the candidate's natural register
 - `skills/job-application-assistant/03-writing-style.md`
 - `skills/job-application-assistant/04-job-evaluation.md`

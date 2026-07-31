@@ -57,7 +57,7 @@ URL: <posting link>         # optional
 From the final `ok` JSON, store:
 
 - **`company`**, **`role`**, **`location`** — folder naming, tracker, cover letter
-- **`description`** — full posting body for fit eval and tailoring
+- **`description`** — full posting body for fit eval and tailoring; also used for tracker `--notes` when there is no `source_url`
 - **`source_url`** — tracker `source` field (leave empty only if user pasted with no URL)
 - **`channel`** — informational (`SEEK`, `LinkedIn`, `web`, `paste`)
 
@@ -67,9 +67,23 @@ Do not invent or reuse example SEEK job IDs. Canonical SEEK URLs come from the p
 
 ## Step 1: DRAFTER - Evaluate Fit
 
+### Profile selection (unified vs internal overlay)
+
+Before reading the candidate profile:
+
+1. Look for a live internal overlay under `skills/job-application-assistant/01-candidate-profile.internal-*.md` (common: `01-candidate-profile.internal-nab.md`).
+2. Treat the overlay as **absent** (unified mode) if the file is missing **or** still contains `INTERNAL_PROFILE_PLACEHOLDER`.
+3. If an overlay is live **and** `company` from Step 0 matches that employer (for NAB: case-insensitive match on `National Australia Bank` or exact/standalone `NAB` — not other banks), set:
+   - `candidate_profile_path` = the overlay file
+   - `profile_mode` = `internal`
+4. Otherwise set `candidate_profile_path` = `skills/job-application-assistant/01-candidate-profile.md` and `profile_mode` = `main`.
+5. When `profile_mode` is `internal`, confirm once before drafting:
+   > "Internal NAB profile selected (Senior Analyst, Engineer / Analyst, Engineer). Continue with the internal profile, or use the main/external profile for this application?"
+6. If the user chooses the main profile for this run, switch `candidate_profile_path` back to `01-candidate-profile.md`.
+
 Read the evaluation framework:
 - `skills/job-application-assistant/04-job-evaluation.md`
-- `skills/job-application-assistant/01-candidate-profile.md`
+- The file at `candidate_profile_path` (not both overlays unless the user overrode)
 
 Using the framework from `04-job-evaluation.md`, evaluate the job posting against the candidate's profile. If the salary lookup tool is configured, run:
 
@@ -86,6 +100,7 @@ Present the evaluation to the user with:
 3. **Behavioral/culture match** - how behavioral profile fits the role/company culture
 4. **Salary benchmark** - salary index for the company (if available)
 5. **Overall fit score** and recommendation (strong fit / moderate fit / weak fit)
+6. **Profile mode** — `main` or `internal` (and which file was used)
 
 After presenting the evaluation, ask the user:
 > "Should I proceed with drafting the CV and cover letter for this role?"
@@ -96,7 +111,7 @@ After presenting the evaluation, ask the user:
 
 ## Step 2: DRAFTER - Draft CV + Cover Letter
 
-You already have `01-candidate-profile.md` and `04-job-evaluation.md` in context from Step 1. **Do not re-read them.**
+You already have the selected candidate profile and `04-job-evaluation.md` in context from Step 1. **Do not re-read them.**
 
 Read only the reference files you do not yet have:
 - `skills/job-application-assistant/03-writing-style.md`
@@ -106,6 +121,8 @@ Read only the reference files you do not yet have:
 Also read the most recent existing CV and cover letter files for concrete structural reference (one of each is enough):
 - Read any existing `applied_jobs/*/<FullName>_CV.tex` (or legacy `cv/*/<FullName>_CV.tex`, or `cv/main_example.tex` if none exist)
 - Read any existing `applied_jobs/*/<FullName>_CoverLetter.tex` (or legacy `cover_letters/*/<FullName>_CoverLetter.tex`)
+
+When `profile_mode` is `internal`, use internal titles/team tags and the Internal NAB mobility guidance in `05-cv-templates.md`.
 
 ### File layout and naming
 
@@ -167,7 +184,7 @@ Write both files to disk. Keep the exact text of both drafts in working memory �
 
 Spawn a **reviewer subagent** with fresh context (see the platform adapter for the exact invocation). Pass the drafts **inline in the prompt** below (do not make the reviewer Read them). Scope the reviewer's file reads to content-critique essentials only — the reviewer does not need the LaTeX template files (`05`, `06`) to critique content, since those govern structural/LaTeX concerns the drafter already applied.
 
-Replace `<APPLICATION_FOLDER>`, `<FULLNAME>`, `<ROLE>`, `<INSERT_JOB_POSTING_TEXT_HERE>`, `<INSERT_CV_DRAFT_HERE>`, and `<INSERT_COVER_LETTER_DRAFT_HERE>` with actual values before dispatching (`<FULLNAME>` = candidate name with underscores, e.g. `Andrew_Pham`).
+Replace `<APPLICATION_FOLDER>`, `<FULLNAME>`, `<ROLE>`, `<CANDIDATE_PROFILE_PATH>`, `<INSERT_JOB_POSTING_TEXT_HERE>`, `<INSERT_CV_DRAFT_HERE>`, and `<INSERT_COVER_LETTER_DRAFT_HERE>` with actual values before dispatching (`<FULLNAME>` = candidate name with underscores, e.g. `Andrew_Pham`; `<CANDIDATE_PROFILE_PATH>` = the profile path from Step 1).
 
 ```
 You are a hiring manager proxy reviewing a job application. Your job is to make the application as targeted and compelling as possible.
@@ -183,7 +200,7 @@ Use WebSearch and WebFetch to research:
 
 ### 2. Read Reference Materials (content-critique only)
 Read these four files — and only these — to ground your critique:
-- `skills/job-application-assistant/01-candidate-profile.md`
+- `<CANDIDATE_PROFILE_PATH>` (the profile selected in Step 1 — main or internal overlay)
 - `skills/job-application-assistant/02-behavioral-profile.md` — use this specifically to check whether the cover letter's voice matches the candidate's natural register. A "Collaborator" PI profile, for example, should not be given a combative, solo-hero tone; a "Persuader" profile should not be given over-hedged, apologetic phrasing.
 - `skills/job-application-assistant/03-writing-style.md`
 - `skills/job-application-assistant/04-job-evaluation.md`
@@ -365,12 +382,16 @@ python tracker/upsert_application.py \
   --source "<source_url from Step 0>" \
   --fit-rating "<strong fit | moderate fit | weak fit from Step 1>" \
   --sector "<sector if known, else omit>" \
+  --channel "<internal when profile_mode is internal; else omit to infer from URL or paste>" \
+  --notes "<see freeform rule below>" \
   --json
 ```
 
 - **Match key:** `company` + `role` (case-insensitive). Re-running `/apply` for the same role updates file paths and `source`; existing `status` is preserved.
-- **Source URL:** must be the canonical posting link from Step 0 (`url` from SEEK detail JSON). Never use README/example placeholder IDs.
-- **Defaults:** `status` = `draft` from `tracker/statuses.json`; `channel` inferred from URL (`SEEK`, `LinkedIn`, or `web`).
+- **Source URL:** must be the canonical posting link from Step 0 (`url` from SEEK detail JSON). Never use README/example placeholder IDs. Omit `--source` (or pass empty) when the user pasted freeform text with no URL.
+- **Internal overlay applies:** when `profile_mode` is `internal`, pass `--channel internal`.
+- **Freeform / no-URL postings:** when `source_url` is empty, pass the job requirements into `--notes` so the tracker retains them. Prefer the requirements / responsibilities / skills sections from `description` (Step 0); if those are not clearly separable, pass the full `description`. Do **not** use the default "Auto-tracked by /apply" placeholder in that case. When a real `source_url` exists, omit `--notes` unless the user asked to store extra context.
+- **Defaults:** `status` = `draft` from `tracker/statuses.json`; `channel` inferred from URL (`SEEK`, `LinkedIn`, or `web`), or `paste` when there is no URL (unless overridden to `internal`).
 - If the command fails, report the error but still present the documents to the user.
 
 Tell the user they can view the row at **http://127.0.0.1:8765** if the tracker server is running (`cd tracker && python server.py`). The UI polls for CSV changes and refreshes automatically within a few seconds.

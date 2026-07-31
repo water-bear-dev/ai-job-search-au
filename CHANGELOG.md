@@ -6,6 +6,10 @@ Format based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
 ## [Unreleased]
 
+### Changed
+
+- **Candidate profile** — observability/ops skills made explicit: Grafana; Kubernetes ops via kubectl and k9s (alongside existing Splunk, OpenSearch, Jenkins, Kubernetes/EKS)
+
 ### Added
 
 - **`cover_letters/cover.cls` + `cover_letters/OpenFonts/fonts/`** — restored tracked cover-letter fonts (regression fix after `f9922b4`); `scripts/verify-assets.sh` runs on install
@@ -18,6 +22,7 @@ Format based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 - **`examples/profile/`** — tracked placeholder templates for `skills/`, `AGENTS.md`, and `cv/main_example.tex`; seeded locally by `scripts/init-profile.sh` (called from `install-adapters.sh`)
 - **Cursor adapters** — `.cursor/skills/`, command skills (`/setup`, `/apply`, …), `application-reviewer` subagent, `job-search-core` rule
 - **Antigravity adapters** — `.agents/skills/` symlinks and `.agents/workflows/` wrappers
+- **Job tracker UI — Phase 2** — tabbed dashboard (**Job Tracker** + **Profile**); job search; row-click multi-select with bulk status update; **Recycle Bin** (soft-delete to `job_search_tracker_trash.csv`, 30-day auto-purge, restore / permanent delete with confirmations); in-browser profile WYSIWYG editor writing to `AGENTS.md`; `tracker/trash_store.py`; trash + profile REST APIs
 - **Job tracker UI (Phase 1)** — `tracker/` FastAPI app + static dashboard for `job_search_tracker.csv`; `job_search_tracker.example.csv` template; `tracker/statuses.json`
 - **`tools/application_paths.py`** — canonical `YYYYMMDD-CompanyName-Role` folder naming for CV and cover letter outputs
 - **`tools/latex_build.py`** — compile CV (lualatex) and cover letter (xelatex) with build artifacts in per-application `build/` subfolders
@@ -44,7 +49,11 @@ Format based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 - **`/apply` output layout** — dated folders under `applied_jobs/` (CV + cover letter in one folder per application); legacy `cv/<folder>/` + `cover_letters/<folder>/` still supported
 - **Pre-commit hook** — still blocks profile paths for older forks; primary privacy model is now `.gitignore` on the whole personal workspace
 - **`.gitignore`** — personal workspace (`cv/`, `skills/`, `AGENTS.md`), `applied_jobs/`, nested application `.tex`, tracker revision log, LaTeX cleanup log; allow `.agents/skills/` and `.agents/workflows/`
+- **Job tracker delete behaviour** — `DELETE /api/jobs` and bulk delete move rows to Recycle Bin instead of permanent removal; `POST /api/jobs/bulk`, `GET/POST /api/trash*` endpoints
 - Updated **README**, **INSTALL**, **SETUP**, **REVIEW_NOTES**, **tracker/README**, **workflows/apply**, **documents/README** for multi-tool paths, application folders, LaTeX build/cleanup, tracker auto-tracking, and gitignored personal workspace
+- **README** — expanded Job tracker UI section (tabs, search, bulk actions, Recycle Bin layout, profile editor, data files)
+- **`.gitignore`** — `job_search_tracker_trash.csv` (Recycle Bin CSV)
+- **Job tracker UX** — Recycle Bin opened via button (top-right, same row as **Add job**); notes column wraps; cover letter attachment hidden when absent; confirm dialog for soft and permanent deletes
 - **`workflows/apply.md` Step 0** — uses `parse_posting.py` instead of inline URL routing; README documents URL vs paste examples
 - **`tools/latex_build.py`** — auto-creates `OpenFonts` symlink in `applied_jobs/<folder>/` when compiling cover letters (fonts live under `cover_letters/OpenFonts/`)
 - **`skills/job-application-assistant/06-cover-letter-templates.md`** — documents the `OpenFonts` symlink behaviour for `applied_jobs/` compiles

@@ -24,9 +24,13 @@ Follow **Step 0** in `workflows/apply.md` exactly:
 
 ## Step 1: DRAFTER - Evaluate Fit
 
+### Profile selection (unified vs internal overlay)
+
+Follow the same profile selection rules as **Step 1** in `workflows/apply.md` (live `01-candidate-profile.internal-*.md` without `INTERNAL_PROFILE_PLACEHOLDER`; NAB/National Australia Bank → internal overlay; confirm once; allow override to main).
+
 Read the evaluation framework:
 - `skills/job-application-assistant/04-job-evaluation.md`
-- `skills/job-application-assistant/01-candidate-profile.md`
+- The file at `candidate_profile_path`
 
 Using the framework from `04-job-evaluation.md`, evaluate the job posting against the candidate's profile. If the salary lookup tool is configured, run:
 
@@ -43,6 +47,7 @@ Present the evaluation to the user with:
 3. **Behavioral/culture match** - how behavioral profile fits the role/company culture
 4. **Salary benchmark** - salary index for the company (if available)
 5. **Overall fit score** and recommendation (strong fit / moderate fit / weak fit)
+6. **Profile mode** — `main` or `internal` (and which file was used)
 
 After presenting the evaluation, ask the user:
 > "Should I proceed with drafting the CV for this role?"
@@ -53,7 +58,7 @@ After presenting the evaluation, ask the user:
 
 ## Step 2: DRAFTER - Draft CV
 
-You already have `01-candidate-profile.md` and `04-job-evaluation.md` in context from Step 1. **Do not re-read them.**
+You already have the selected candidate profile and `04-job-evaluation.md` in context from Step 1. **Do not re-read them.**
 
 Read only the reference files you do not yet have:
 - `skills/job-application-assistant/03-writing-style.md`
@@ -61,6 +66,8 @@ Read only the reference files you do not yet have:
 
 Also read the most recent existing CV for concrete structural reference (one is enough):
 - Read any existing `applied_jobs/*/<FullName>_CV.tex` (or legacy `cv/*/<FullName>_CV.tex`, or `cv/main_example.tex` if none exist)
+
+When `profile_mode` is `internal`, use internal titles/team tags and the Internal NAB mobility guidance in `05-cv-templates.md`.
 
 ### File layout and naming
 
@@ -110,7 +117,7 @@ Write the file to disk. Keep the exact text of the draft in working memory — y
 
 Spawn a **reviewer subagent** with fresh context (see the platform adapter for the exact invocation). Pass the CV draft **inline in the prompt** below (do not make the reviewer Read it). Scope the reviewer's file reads to content-critique essentials only — the reviewer does not need `05-cv-templates.md` to critique content, since that governs structural/LaTeX concerns the drafter already applied.
 
-Replace `<APPLICATION_FOLDER>`, `<FULLNAME>`, `<ROLE>`, `<INSERT_JOB_POSTING_TEXT_HERE>`, and `<INSERT_CV_DRAFT_HERE>` with actual values before dispatching (`<FULLNAME>` = candidate name with underscores, e.g. `Andrew_Pham`).
+Replace `<APPLICATION_FOLDER>`, `<FULLNAME>`, `<ROLE>`, `<CANDIDATE_PROFILE_PATH>`, `<INSERT_JOB_POSTING_TEXT_HERE>`, and `<INSERT_CV_DRAFT_HERE>` with actual values before dispatching (`<FULLNAME>` = candidate name with underscores, e.g. `Andrew_Pham`; `<CANDIDATE_PROFILE_PATH>` = the profile path from Step 1).
 
 ```
 You are a hiring manager proxy reviewing a tailored CV for a job application. Your job is to make the CV as targeted and compelling as possible. There is NO cover letter — critique the CV only.
@@ -126,7 +133,7 @@ Use WebSearch and WebFetch to research:
 
 ### 2. Read Reference Materials (content-critique only)
 Read these four files — and only these — to ground your critique:
-- `skills/job-application-assistant/01-candidate-profile.md`
+- `<CANDIDATE_PROFILE_PATH>` (the profile selected in Step 1 — main or internal overlay)
 - `skills/job-application-assistant/02-behavioral-profile.md`
 - `skills/job-application-assistant/03-writing-style.md`
 - `skills/job-application-assistant/04-job-evaluation.md`
@@ -253,12 +260,16 @@ python tracker/upsert_application.py \
   --source "<source_url from Step 0>" \
   --fit-rating "<strong fit | moderate fit | weak fit from Step 1>" \
   --sector "<sector if known, else omit>" \
+  --channel "<internal when profile_mode is internal; else omit to infer from URL or paste>" \
+  --notes "<see freeform rule below>" \
   --json
 ```
 
 - **Match key:** `company` + `role` (case-insensitive). Re-running for the same role updates file paths and `source`; existing `status` and any existing `cover_letter_file` are preserved.
-- **Source URL:** must be the canonical posting link from Step 0. Never use README/example placeholder IDs.
-- **Defaults:** `status` = `draft` from `tracker/statuses.json`; `channel` inferred from URL (`SEEK`, `LinkedIn`, or `web`).
+- **Source URL:** must be the canonical posting link from Step 0. Never use README/example placeholder IDs. Omit `--source` (or pass empty) when the user pasted freeform text with no URL.
+- **Internal overlay applies:** when `profile_mode` is `internal`, pass `--channel internal`.
+- **Freeform / no-URL postings:** when `source_url` is empty, pass the job requirements into `--notes` so the tracker retains them. Prefer the requirements / responsibilities / skills sections from `description` (Step 0); if those are not clearly separable, pass the full `description`. Do **not** use the default "Auto-tracked by /apply" placeholder in that case. When a real `source_url` exists, omit `--notes` unless the user asked to store extra context.
+- **Defaults:** `status` = `draft` from `tracker/statuses.json`; `channel` inferred from URL (`SEEK`, `LinkedIn`, or `web`), or `paste` when there is no URL (unless overridden to `internal`).
 - If the command fails, report the error but still present the CV to the user.
 
 Tell the user they can view the row at **http://127.0.0.1:8765** if the tracker server is running (`cd tracker && python server.py`).

@@ -8,9 +8,9 @@ After clone, `./scripts/install-adapters.sh` runs `scripts/init-profile.sh`, whi
 |----------|-------------------------|
 | `AGENTS.example.md` | `AGENTS.md` (+ `CLAUDE.md` symlink) |
 | `skills/` | `skills/` |
+| `skills/.../01-candidate-profile.internal-nab.md` | Optional internal overlay (created only if `/setup` opts in; placeholder is unused) |
 | `cv/main_example.tex` | `cv/main_example.tex` |
 | `cv/main_example.html` | `cv/main_example.html` (HTML fallback example) |
-| `skills/` | `skills/` |
 | `config/document_output.json` | `config/document_output.json` (from example on init) |
 
 Then run **`/setup`** to replace placeholders with your real profile.

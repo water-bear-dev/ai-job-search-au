@@ -36,7 +36,11 @@ def main() -> int:
         help="Posting URL. SEEK links are canonicalized; if omitted, seen_jobs.json is checked.",
     )
     parser.add_argument("--fit-rating", default="")
-    parser.add_argument("--notes", default="")
+    parser.add_argument(
+        "--notes",
+        default="",
+        help="Tracker notes. For freeform (no URL) applies, pass job requirements here.",
+    )
     parser.add_argument("--sector", default="")
     parser.add_argument("--role-type", default="")
     parser.add_argument("--channel", default="")

@@ -4,7 +4,7 @@
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1" />
   <title>Job Tracker — AI Job Search AU</title>
-  <link rel="stylesheet" href="/style.css?v=15" />
+  <link rel="stylesheet" href="/style.css?v=16" />
 </head>
 <body>
   <div class="page-shell">
@@ -33,6 +33,16 @@
         <label class="search-label">
           Search
           <input type="search" id="job-search" placeholder="Company, role, status, notes…" autocomplete="off" />
+        </label>
+        <label class="fit-filter-label">
+          Fit
+          <select id="fit-filter" aria-label="Filter by fit">
+            <option value="">All fits</option>
+            <option value="strong">Strong</option>
+            <option value="moderate">Moderate</option>
+            <option value="weak">Weak</option>
+            <option value="unset">Unset</option>
+          </select>
         </label>
         <button type="button" id="btn-select-all-filtered" class="small">Select all</button>
         <label class="page-size-label">
@@ -66,6 +76,7 @@
           <colgroup>
             <col class="col-title" />
             <col class="col-status" />
+            <col class="col-fit" />
             <col class="col-attachments" />
             <col class="col-notes" />
             <col class="col-actions" />
@@ -74,13 +85,14 @@
             <tr>
               <th>Title</th>
               <th>Status</th>
+              <th>Fit</th>
               <th>Attachments</th>
               <th>Notes</th>
               <th>Actions</th>
             </tr>
           </thead>
           <tbody id="jobs-body">
-            <tr><td colspan="5" class="empty">Loading…</td></tr>
+            <tr><td colspan="6" class="empty">Loading…</td></tr>
           </tbody>
         </table>
       </div>
@@ -147,6 +159,14 @@
       <label>Status
         <select id="field-status"></select>
       </label>
+      <label>Fit
+        <select id="field-fit">
+          <option value="">Unset</option>
+          <option value="strong fit">Strong fit</option>
+          <option value="moderate fit">Moderate fit</option>
+          <option value="weak fit">Weak fit</option>
+        </select>
+      </label>
       <label>CV file path <input type="text" id="field-cv" placeholder="applied_jobs/20260622-CompanyName-Role/Andrew_Pham_CV.tex" /></label>
       <label>Cover letter path <input type="text" id="field-cover" placeholder="applied_jobs/20260622-CompanyName-Role/Andrew_Pham_CoverLetter.tex" /></label>
       <label>Notes <textarea id="field-notes" rows="3"></textarea></label>
@@ -205,6 +225,6 @@
 
   <script src="/vendor/marked.min.js"></script>
   <script src="/vendor/turndown.js"></script>
-  <script src="/app.js?v=11"></script>
+  <script src="/app.js?v=12"></script>
 </body>
 </html>

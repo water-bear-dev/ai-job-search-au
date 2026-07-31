@@ -39,6 +39,7 @@ Before doing anything, show the user precisely what will be wiped.
 Read the current state of these files and report whether each has content or is already empty:
 
 - `skills/job-application-assistant/01-candidate-profile.md`
+- `skills/job-application-assistant/01-candidate-profile.internal-*.md` *(optional internal overlay — delete if present)*
 - `skills/job-application-assistant/02-behavioral-profile.md`
 - `skills/job-application-assistant/05-cv-templates.md` *(profile statements section only — framework structure is preserved)*
 - `skills/job-application-assistant/07-interview-prep.md` *(STAR examples and STAR candidates sections only — framework structure is preserved)*
@@ -50,6 +51,9 @@ Present as:
 
 - 01-candidate-profile.md — [has content / already empty]
   Full file will be replaced with a blank template.
+
+- 01-candidate-profile.internal-*.md — [present / absent]
+  Any live internal overlay files will be deleted (unified mode after reset).
 
 - 02-behavioral-profile.md — [has content / already empty]
   Full file will be replaced with a blank template.
@@ -138,6 +142,8 @@ Wait for the user's response.
 ## References
 ```
 
+**For any `01-candidate-profile.internal-*.md`**, delete the file (do not leave a placeholder). After reset, `/apply` uses unified mode until `/setup` opts in again to an internal overlay.
+
 **For `02-behavioral-profile.md`**, replace the file content with:
 
 ```markdown
@@ -215,7 +221,7 @@ After the reset is complete, report:
 Then tell the user what to do next based on what was reset:
 
 **If profile was reset:**
-> Your candidate profile is now blank. Run `/setup` to repopulate it. The command auto-detects any files in your `documents/` folder and offers to read from there; otherwise it walks you through a CV import or interactive interview.
+> Your candidate profile is now blank (including any internal overlay). Run `/setup` to repopulate it. The command auto-detects any files in your `documents/` folder and offers to read from there; otherwise it walks you through a CV import or interactive interview. `/setup` will also ask whether you want a separate internal application profile.
 
 **If documents were reset:**
 > The `documents/` folder is now empty. Add your career documents and run `/setup` to populate your profile. See `documents/README.md` for instructions on what to put where.
