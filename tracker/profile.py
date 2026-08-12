@@ -8,6 +8,7 @@ from pathlib import Path
 from csv_store import REPO_ROOT
 
 AGENTS_PATH = REPO_ROOT / "AGENTS.md"
+NOTES_SECTION_TITLE = "Notes"
 _PROFILE_START = re.compile(r"^##\s+Candidate Profile\s*$", re.MULTILINE)
 _SECTION = re.compile(r"^###\s+(.+)$", re.MULTILINE)
 _BOLD = re.compile(r"\*\*([^*]+)\*\*")
@@ -64,6 +65,9 @@ def parse_profile(path: Path | None = None) -> dict:
                 items.append(_strip_markdown_inline(stripped[4:]))
         if items or raw:
             sections.append({"title": title, "items": items, "raw": raw})
+
+    if not any(section["title"].casefold() == NOTES_SECTION_TITLE.casefold() for section in sections):
+        sections.append({"title": NOTES_SECTION_TITLE, "items": [], "raw": ""})
 
     return {"sections": sections}
 
