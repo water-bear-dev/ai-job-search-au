@@ -20,7 +20,7 @@ python server.py
 ./run.sh
 ```
 
-Open **http://127.0.0.1:8765**
+Open **http://127.0.0.1:8765** — the **Dashboard** tab loads first with a Chart.js status breakdown (week / month / quarter / year / beginning). Changing a job’s status updates the chart immediately.
 
 Override port: `TRACKER_PORT=9000 python server.py`
 
@@ -36,9 +36,16 @@ If `job_search_tracker.csv` does not exist, the server copies
 Edit [`statuses.json`](statuses.json) — add, remove, or reorder statuses. Restart the server.
 Set `default_status` for new rows (used when `/apply` auto-tracks an application).
 
+Progression semantics live under `progression`:
+- `pipeline` — ordered funnel stages (Applied → … → Offer)
+- `closed` — terminal negative outcomes
+- `aliases` — rewrite on write/read (e.g. `draft` → `applied`)
+
+On server start, any remaining `draft` CSV rows are migrated to `applied` (also runnable via `python tracker/migrate_drafts.py`).
+
 ## Auto-tracking from `/apply`
 
-When `/apply` finishes drafting a CV and cover letter, it runs `tracker/upsert_application.py` to create or update a row keyed by `company` + `role`. File paths, source URL, and fit rating are filled in; status defaults to `default_status` (`draft`).
+When `/apply` finishes drafting a CV and cover letter, it runs `tracker/upsert_application.py` to create or update a row keyed by `company` + `role`. File paths, source URL, and fit rating are filled in; status defaults to `default_status` (`applied`).
 
 For **pasted / freeform postings with no URL**, `/apply` and `/applyCVonly` pass the job requirements into `--notes` so they remain visible in the tracker (there is no link to reopen the posting).
 
@@ -93,6 +100,8 @@ fit_rating, notes, cv_file, cover_letter_file, source
 | POST | `/api/trash/{index}/restore` | Restore one job to tracker |
 | DELETE | `/api/trash/{index}` | Permanently delete one job |
 | POST | `/api/trash/bulk` | Bulk restore or permanent delete |
+| GET | `/api/statuses` | Status list, labels, default, and progression config |
+| GET | `/api/analytics?period=` | Status mix + pipeline progression (`week`/`month`/`quarter`/`year`/`beginning`) |
 | GET | `/api/revision` | Data revision (poll to detect CSV changes from `/apply`) |
 | POST | `/api/revision` | Notify hook (called by `upsert_application.py` after writes) |
 | GET | `/api/profile` | Candidate profile sections from `AGENTS.md` |

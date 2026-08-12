@@ -1,5 +1,5 @@
 {
-  "default_status": "draft",
+  "default_status": "applied",
   "statuses": [
     "draft",
     "applied",
@@ -19,5 +19,12 @@
     "rejected": "Rejected",
     "withdrawn": "Withdrawn",
     "no_response": "No response"
+  },
+  "progression": {
+    "pipeline": ["applied", "phone_screen", "interview", "offer"],
+    "closed": ["rejected", "withdrawn", "no_response"],
+    "aliases": {
+      "draft": "applied"
+    }
   }
 }

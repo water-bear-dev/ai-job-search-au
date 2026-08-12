@@ -26,9 +26,21 @@ from starlette.requests import Request
 from starlette.responses import Response
 from pydantic import BaseModel, Field
 
-from csv_store import COLUMNS, REPO_ROOT, TRACKER_DIR, ensure_csv_exists, new_row, read_rows, touch_modified, write_rows
+from csv_store import (
+    COLUMNS,
+    REPO_ROOT,
+    TRACKER_DIR,
+    ensure_csv_exists,
+    migrate_draft_rows_to_applied,
+    new_row,
+    normalize_stored_status,
+    read_rows,
+    touch_modified,
+    write_rows,
+)
 from profile import parse_profile, write_profile
 from revision import bump_revision, get_revision
+from analytics import PERIODS, build_analytics
 from trash_store import (
     RETENTION_DAYS,
     days_until_purge,
@@ -53,6 +65,7 @@ FILE_ALLOWLIST_PREFIXES = (
 @asynccontextmanager
 async def lifespan(_app: FastAPI):
     ensure_csv_exists()
+    migrate_draft_rows_to_applied()
     purge_expired_trash()
     yield
 
@@ -137,10 +150,17 @@ class TrashInfoResponse(BaseModel):
     purged: int
 
 
+class StatusProgression(BaseModel):
+    pipeline: list[str] = Field(default_factory=list)
+    closed: list[str] = Field(default_factory=list)
+    aliases: dict[str, str] = Field(default_factory=dict)
+
+
 class StatusesConfig(BaseModel):
     default_status: str
     statuses: list[str]
     labels: dict[str, str] = Field(default_factory=dict)
+    progression: StatusProgression = Field(default_factory=StatusProgression)
 
 
 class ProfileSection(BaseModel):
@@ -167,12 +187,13 @@ def validate_status(status: str) -> str:
     cfg = load_statuses()
     if not status:
         return cfg.default_status
-    if status not in cfg.statuses:
+    normalized = normalize_stored_status(status)
+    if normalized not in cfg.statuses:
         raise HTTPException(
             status_code=400,
             detail=f"Invalid status '{status}'. Allowed: {cfg.statuses}",
         )
-    return status
+    return normalized
 
 
 def sort_jobs_newest_first(rows: list[dict]) -> list[tuple[int, dict]]:
@@ -359,6 +380,25 @@ def bulk_trash(body: BulkTrashRequest) -> BulkJobResponse:
 @app.get("/api/statuses")
 def get_statuses() -> StatusesConfig:
     return load_statuses()
+
+
+@app.get("/api/analytics")
+def get_analytics(period: str = Query("beginning")) -> dict[str, Any]:
+    """Status mix and pipeline progression for the selected time range."""
+    if period not in PERIODS:
+        raise HTTPException(
+            status_code=400,
+            detail=f"Invalid period '{period}'. Allowed: {list(PERIODS)}",
+        )
+    cfg = load_statuses()
+    return build_analytics(
+        read_rows(),
+        period=period,
+        statuses=cfg.statuses,
+        labels=cfg.labels,
+        default_status=cfg.default_status,
+        progression=cfg.progression.model_dump(),
+    )
 
 
 @app.get("/api/profile")

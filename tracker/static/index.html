@@ -4,22 +4,78 @@
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1" />
   <title>Job Tracker — AI Job Search AU</title>
-  <link rel="stylesheet" href="/style.css?v=16" />
+  <link rel="stylesheet" href="/style.css?v=19" />
 </head>
 <body>
   <div class="page-shell">
     <header class="app-header">
       <h1 class="app-title">AI Job Search AU</h1>
       <nav class="app-tabs" role="tablist" aria-label="Sections">
-        <button type="button" class="app-tab active" id="tab-jobs" role="tab" aria-selected="true" aria-controls="panel-jobs" data-tab="jobs">Job Tracker</button>
+        <button type="button" class="app-tab active" id="tab-dashboard" role="tab" aria-selected="true" aria-controls="panel-dashboard" data-tab="dashboard">Dashboard</button>
+        <button type="button" class="app-tab" id="tab-jobs" role="tab" aria-selected="false" aria-controls="panel-jobs" data-tab="jobs">Job Tracker</button>
         <button type="button" class="app-tab" id="tab-profile" role="tab" aria-selected="false" aria-controls="panel-profile" data-tab="profile">Profile</button>
       </nav>
     </header>
 
-    <section id="panel-jobs" class="tab-panel active" role="tabpanel" aria-labelledby="tab-jobs" data-panel="jobs">
+    <section id="panel-dashboard" class="tab-panel active" role="tabpanel" aria-labelledby="tab-dashboard" data-panel="dashboard">
+      <div class="section-intro">
+        <h2>Application progress</h2>
+        <p class="subtitle">Status breakdown across tracked applications</p>
+      </div>
+
+      <div class="dashboard-period" role="group" aria-label="Time range">
+        <button type="button" class="period-btn" data-period="week">Week</button>
+        <button type="button" class="period-btn" data-period="month">Month</button>
+        <button type="button" class="period-btn" data-period="quarter">Quarter</button>
+        <button type="button" class="period-btn" data-period="year">Year</button>
+        <button type="button" class="period-btn active" data-period="beginning">Beginning</button>
+      </div>
+
+      <p id="dashboard-summary" class="dashboard-summary">Loading…</p>
+
+      <div id="progression-summary" class="progression-summary" hidden>
+        <div class="prog-stat">
+          <span class="prog-stat-value" id="prog-active">0</span>
+          <span class="prog-stat-label">In pipeline</span>
+        </div>
+        <div class="prog-stat">
+          <span class="prog-stat-value" id="prog-success">0</span>
+          <span class="prog-stat-label">Offers</span>
+        </div>
+        <div class="prog-stat">
+          <span class="prog-stat-value" id="prog-closed">0</span>
+          <span class="prog-stat-label">Closed</span>
+        </div>
+        <div class="prog-stat">
+          <span class="prog-stat-value" id="prog-offer-rate">0%</span>
+          <span class="prog-stat-label">Offer rate</span>
+        </div>
+      </div>
+
+      <div id="dashboard-visualiser" class="dashboard-visualiser" aria-live="polite">
+        <div class="dashboard-chart-panel">
+          <div class="chart-wrap" id="chart-wrap">
+            <canvas id="status-chart" aria-label="Status distribution chart"></canvas>
+            <p id="chart-empty" class="chart-empty hidden">No applications in this time range.</p>
+          </div>
+          <ul id="status-breakdown" class="status-breakdown"></ul>
+        </div>
+
+        <div class="progression-panel">
+          <h3 class="progression-title">Pipeline progression</h3>
+          <p class="progression-hint">Reached counts assume closed outcomes progressed at least to Applied (no status history).</p>
+          <div class="funnel-wrap">
+            <canvas id="funnel-chart" aria-label="Pipeline funnel chart"></canvas>
+          </div>
+          <ul id="progression-stages" class="progression-stages"></ul>
+        </div>
+      </div>
+    </section>
+
+    <section id="panel-jobs" class="tab-panel" role="tabpanel" aria-labelledby="tab-jobs" data-panel="jobs" hidden>
       <div class="section-intro" id="jobs-section-intro">
         <h2>Job Tracker</h2>
-        <p class="subtitle">Local applications dashboard · <code>job_search_tracker.csv</code></p>
+        <p class="subtitle">Local applications · <code>job_search_tracker.csv</code></p>
         <div class="section-actions">
           <button type="button" id="btn-add" class="primary">Add job</button>
           <button type="button" id="btn-open-trash" class="small">Recycle Bin <span id="trash-count-badge" class="trash-count-badge">0</span></button>
@@ -225,6 +281,7 @@
 
   <script src="/vendor/marked.min.js"></script>
   <script src="/vendor/turndown.js"></script>
-  <script src="/app.js?v=12"></script>
+  <script src="/vendor/chart.umd.min.js"></script>
+  <script src="/app.js?v=15"></script>
 </body>
 </html>

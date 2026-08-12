@@ -391,7 +391,7 @@ python tracker/upsert_application.py \
 - **Source URL:** must be the canonical posting link from Step 0 (`url` from SEEK detail JSON). Never use README/example placeholder IDs. Omit `--source` (or pass empty) when the user pasted freeform text with no URL.
 - **Internal overlay applies:** when `profile_mode` is `internal`, pass `--channel internal`.
 - **Freeform / no-URL postings:** when `source_url` is empty, pass the job requirements into `--notes` so the tracker retains them. Prefer the requirements / responsibilities / skills sections from `description` (Step 0); if those are not clearly separable, pass the full `description`. Do **not** use the default "Auto-tracked by /apply" placeholder in that case. When a real `source_url` exists, omit `--notes` unless the user asked to store extra context.
-- **Defaults:** `status` = `draft` from `tracker/statuses.json`; `channel` inferred from URL (`SEEK`, `LinkedIn`, or `web`), or `paste` when there is no URL (unless overridden to `internal`).
+- **Defaults:** `status` = `applied` from `tracker/statuses.json`; `channel` inferred from URL (`SEEK`, `LinkedIn`, or `web`), or `paste` when there is no URL (unless overridden to `internal`).
 - If the command fails, report the error but still present the documents to the user.
 
 Tell the user they can view the row at **http://127.0.0.1:8765** if the tracker server is running (`cd tracker && python server.py`). The UI polls for CSV changes and refreshes automatically within a few seconds.

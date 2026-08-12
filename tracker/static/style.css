@@ -811,3 +811,256 @@ select.status-select {
 .missing {
   color: var(--missing);
 }
+
+/* Dashboard */
+.dashboard-period {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.4rem;
+  margin-bottom: 1rem;
+}
+
+.period-btn {
+  padding: 0.4rem 0.85rem;
+  border-radius: 6px;
+  font-size: 0.8125rem;
+  background: var(--surface);
+  border: 1px solid var(--border);
+  color: var(--muted);
+}
+
+.period-btn:hover {
+  color: var(--text);
+}
+
+.period-btn.active {
+  color: var(--text);
+  border-color: var(--accent);
+  background: color-mix(in srgb, var(--accent) 18%, var(--surface));
+}
+
+.dashboard-summary {
+  margin: 0 0 1rem;
+  color: var(--muted);
+  font-size: 0.9375rem;
+}
+
+.dashboard-visualiser {
+  max-width: 900px;
+}
+
+.dashboard-chart-panel {
+  display: grid;
+  grid-template-columns: minmax(220px, 280px) minmax(0, 1fr);
+  gap: 1.5rem;
+  align-items: center;
+}
+
+@media (max-width: 700px) {
+  .dashboard-chart-panel {
+    grid-template-columns: 1fr;
+    justify-items: center;
+  }
+
+  .status-breakdown {
+    width: 100%;
+  }
+}
+
+.chart-wrap {
+  position: relative;
+  width: min(100%, 280px);
+  aspect-ratio: 1;
+}
+
+.chart-wrap.is-empty {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 12px;
+}
+
+.chart-wrap canvas {
+  width: 100% !important;
+  height: 100% !important;
+}
+
+.chart-empty {
+  margin: 0;
+  padding: 1rem;
+  text-align: center;
+  color: var(--muted);
+  font-size: 0.875rem;
+}
+
+.chart-empty.hidden,
+#status-chart.hidden {
+  display: none;
+}
+
+.status-breakdown {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 0.65rem;
+  width: 100%;
+}
+
+.status-breakdown-empty {
+  color: var(--muted);
+  font-size: 0.875rem;
+  padding: 0.5rem 0;
+}
+
+.status-breakdown-row {
+  display: grid;
+  grid-template-columns: 0.75rem minmax(0, 1fr) auto auto;
+  grid-template-areas:
+    "swatch label count pct"
+    "track track track track";
+  column-gap: 0.55rem;
+  row-gap: 0.3rem;
+  align-items: center;
+}
+
+.status-breakdown-row.is-zero {
+  opacity: 0.45;
+}
+
+.status-swatch {
+  grid-area: swatch;
+  width: 0.75rem;
+  height: 0.75rem;
+  border-radius: 2px;
+}
+
+.status-breakdown-label {
+  grid-area: label;
+  font-size: 0.875rem;
+}
+
+.status-breakdown-count {
+  grid-area: count;
+  font-size: 0.8125rem;
+  color: var(--muted);
+  font-variant-numeric: tabular-nums;
+}
+
+.status-breakdown-pct {
+  grid-area: pct;
+  font-size: 0.875rem;
+  font-weight: 600;
+  font-variant-numeric: tabular-nums;
+  min-width: 3.25rem;
+  text-align: right;
+}
+
+.status-breakdown-track {
+  grid-area: track;
+  height: 0.35rem;
+  border-radius: 999px;
+  background: color-mix(in srgb, var(--border) 70%, var(--surface));
+  overflow: hidden;
+}
+
+.status-breakdown-fill {
+  height: 100%;
+  border-radius: inherit;
+  max-width: 100%;
+  transition: width 0.35s ease;
+}
+
+.progression-summary {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 0.75rem;
+  margin: 0 0 1.25rem;
+}
+
+@media (max-width: 700px) {
+  .progression-summary {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+}
+
+.prog-stat {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  padding: 0.85rem 1rem;
+  display: flex;
+  flex-direction: column;
+  gap: 0.2rem;
+}
+
+.prog-stat-value {
+  font-size: 1.35rem;
+  font-weight: 650;
+  font-variant-numeric: tabular-nums;
+}
+
+.prog-stat-label {
+  color: var(--muted);
+  font-size: 0.75rem;
+}
+
+.progression-panel {
+  margin-top: 1.75rem;
+  padding-top: 1.25rem;
+  border-top: 1px solid var(--border);
+}
+
+.progression-title {
+  margin: 0 0 0.35rem;
+  font-size: 1.05rem;
+}
+
+.progression-hint {
+  margin: 0 0 1rem;
+  color: var(--muted);
+  font-size: 0.8rem;
+}
+
+.funnel-wrap {
+  height: 220px;
+  margin-bottom: 1rem;
+  max-width: 720px;
+}
+
+.progression-stages {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 0.55rem;
+  max-width: 720px;
+}
+
+.progression-stage-row {
+  display: grid;
+  grid-template-columns: 0.75rem minmax(0, 1fr) auto auto auto;
+  gap: 0.55rem;
+  align-items: center;
+  font-size: 0.8125rem;
+}
+
+.progression-stage-label {
+  font-size: 0.875rem;
+}
+
+.progression-stage-meta {
+  color: var(--muted);
+  font-variant-numeric: tabular-nums;
+}
+
+.progression-stage-conv {
+  font-weight: 600;
+  font-variant-numeric: tabular-nums;
+  min-width: 3.5rem;
+  text-align: right;
+}

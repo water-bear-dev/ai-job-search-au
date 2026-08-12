@@ -154,10 +154,46 @@ def find_row_index(rows: list[dict], company: str, role: str) -> int | None:
 def load_default_status() -> str:
     statuses_path = TRACKER_DIR / "statuses.json"
     if not statuses_path.exists():
-        return "draft"
+        return "applied"
     with statuses_path.open(encoding="utf-8") as f:
         data = json.load(f)
-    return (data.get("default_status") or "draft").strip()
+    return (data.get("default_status") or "applied").strip()
+
+
+def load_status_aliases() -> dict[str, str]:
+    statuses_path = TRACKER_DIR / "statuses.json"
+    if not statuses_path.exists():
+        return {"draft": "applied"}
+    with statuses_path.open(encoding="utf-8") as f:
+        data = json.load(f)
+    progression = data.get("progression") or {}
+    aliases = progression.get("aliases") or {}
+    return {str(k): str(v) for k, v in aliases.items()}
+
+
+def normalize_stored_status(status: str) -> str:
+    """Apply aliases (e.g. draft → applied) and fall back to default_status."""
+    default = load_default_status()
+    value = (status or "").strip() or default
+    return load_status_aliases().get(value, value)
+
+
+def migrate_draft_rows_to_applied() -> int:
+    """Rewrite legacy ``draft`` statuses to ``applied``. Returns rows updated."""
+    ensure_csv_exists()
+    rows = read_rows()
+    aliases = load_status_aliases()
+    target = aliases.get("draft", "applied")
+    updated = 0
+    for row in rows:
+        if (row.get("status") or "").strip() == "draft":
+            row["status"] = target
+            touch_modified(row)
+            updated += 1
+    if updated:
+        write_rows(rows)
+    return updated
+
 
 
 def normalize_source_url(source: str) -> str:
@@ -266,7 +302,7 @@ def upsert_application(
             role_type=role_type,
             channel=channel,
             contact_person=contact_person,
-            status=status or load_default_status(),
+            status=normalize_stored_status(status or load_default_status()),
         )
         rows.append(row)
         write_rows(rows)
@@ -297,7 +333,11 @@ def upsert_application(
     if contact_person.strip() and not row["contact_person"]:
         row["contact_person"] = contact_person.strip()
     if status.strip() and not row["status"]:
-        row["status"] = status.strip()
+        row["status"] = normalize_stored_status(status)
+    elif not row.get("status"):
+        row["status"] = load_default_status()
+    else:
+        row["status"] = normalize_stored_status(row["status"])
     touch_modified(row)
     rows[index] = row
     write_rows(rows)

@@ -1,4 +1,9 @@
-let statusesConfig = { default_status: "draft", statuses: [], labels: {} };
+let statusesConfig = {
+  default_status: "applied",
+  statuses: [],
+  labels: {},
+  progression: { pipeline: [], closed: [], aliases: {} },
+};
 let lastRevision = 0;
 let allJobs = [];
 let searchQuery = "";
@@ -15,6 +20,23 @@ let trashRetentionDays = 30;
 let jobsSubView = "jobs";
 let confirmResolver = null;
 const REVISION_POLL_MS = 3000;
+const DASHBOARD_PERIOD_KEY = "tracker.dashboard.period";
+const DASHBOARD_PERIODS = ["week", "month", "quarter", "year", "beginning"];
+const STATUS_BAR_COLORS = {
+  draft: "#6b7280",
+  applied: "#3b82f6",
+  phone_screen: "#06b6d4",
+  interview: "#a855f7",
+  offer: "#22c55e",
+  rejected: "#ef4444",
+  withdrawn: "#f59e0b",
+  no_response: "#94a3b8",
+};
+let dashboardPeriod = "beginning";
+let statusChart = null;
+let funnelChart = null;
+let dashboardChartTotal = 0;
+let latestAnalytics = null;
 
 const $ = (sel) => document.querySelector(sel);
 const jobsBody = $("#jobs-body");
@@ -177,6 +199,473 @@ function jobModifiedAt(job) {
   return job.modified_at || jobCreatedAt(job);
 }
 
+function parseJobDate(iso) {
+  if (!iso) return null;
+  const normalized = /^\d{4}-\d{2}-\d{2}$/.test(iso) ? `${iso}T00:00:00` : iso;
+  const d = new Date(normalized);
+  return Number.isNaN(d.getTime()) ? null : d;
+}
+
+function startOfLocalDay(d) {
+  return new Date(d.getFullYear(), d.getMonth(), d.getDate());
+}
+
+function periodStartDate(period, now = new Date()) {
+  const today = startOfLocalDay(now);
+  if (period === "week") {
+    const day = today.getDay();
+    const mondayOffset = day === 0 ? -6 : 1 - day;
+    return new Date(today.getFullYear(), today.getMonth(), today.getDate() + mondayOffset);
+  }
+  if (period === "month") {
+    return new Date(today.getFullYear(), today.getMonth(), 1);
+  }
+  if (period === "quarter") {
+    const quarterMonth = Math.floor(today.getMonth() / 3) * 3;
+    return new Date(today.getFullYear(), quarterMonth, 1);
+  }
+  if (period === "year") {
+    return new Date(today.getFullYear(), 0, 1);
+  }
+  return null;
+}
+
+function periodLabel(period) {
+  const labels = {
+    week: "this week",
+    month: "this month",
+    quarter: "this quarter",
+    year: "this year",
+    beginning: "from the beginning",
+  };
+  return labels[period] || period;
+}
+
+function loadDashboardPeriod() {
+  try {
+    const saved = localStorage.getItem(DASHBOARD_PERIOD_KEY);
+    if (DASHBOARD_PERIODS.includes(saved)) return saved;
+  } catch {
+    /* ignore */
+  }
+  return "beginning";
+}
+
+function saveDashboardPeriod(period) {
+  try {
+    localStorage.setItem(DASHBOARD_PERIOD_KEY, period);
+  } catch {
+    /* ignore */
+  }
+}
+
+function jobsInPeriod(period) {
+  const start = periodStartDate(period);
+  if (!start) return allJobs;
+  return allJobs.filter((item) => {
+    const created = parseJobDate(jobCreatedAt(item.job));
+    if (!created) return false;
+    return created >= start;
+  });
+}
+
+function formatPercent(count, total) {
+  if (!total) return "0%";
+  const pct = (count / total) * 100;
+  if (pct === 0 || pct === 100) return `${pct}%`;
+  const rounded = Math.round(pct * 10) / 10;
+  return Number.isInteger(rounded) ? `${rounded}%` : `${rounded.toFixed(1)}%`;
+}
+
+function statusBarColor(code, index) {
+  if (STATUS_BAR_COLORS[code]) return STATUS_BAR_COLORS[code];
+  const fallback = ["#64748b", "#0ea5e9", "#8b5cf6", "#14b8a6", "#eab308", "#f97316"];
+  return fallback[index % fallback.length];
+}
+
+function syncPeriodButtons() {
+  document.querySelectorAll(".period-btn").forEach((btn) => {
+    const active = btn.dataset.period === dashboardPeriod;
+    btn.classList.toggle("active", active);
+    btn.setAttribute("aria-pressed", active ? "true" : "false");
+  });
+}
+
+function statusAliases() {
+  return statusesConfig.progression?.aliases || {};
+}
+
+function resolveStatusCode(raw) {
+  const aliases = statusAliases();
+  const status = (raw || "").trim() || statusesConfig.default_status;
+  return aliases[status] || status;
+}
+
+function selectableStatuses() {
+  const aliases = statusAliases();
+  return (statusesConfig.statuses || []).filter((code) => !(code in aliases));
+}
+
+function formatAnalyticsPercent(value) {
+  const n = Number(value) || 0;
+  if (n === 0 || n === 100) return `${n}%`;
+  return Number.isInteger(n) ? `${n}%` : `${n.toFixed(1)}%`;
+}
+
+function buildLocalAnalytics(period = dashboardPeriod) {
+  const aliases = statusAliases();
+  const pipeline = statusesConfig.progression?.pipeline || [];
+  const closed = statusesConfig.progression?.closed || [];
+  const filtered = jobsInPeriod(period).map((item) => item.job);
+  const total = filtered.length;
+  const countsMap = new Map((statusesConfig.statuses || []).map((code) => [code, 0]));
+  const resolved = [];
+  for (const job of filtered) {
+    const status = resolveStatusCode(job.status);
+    resolved.push(status);
+    countsMap.set(status, (countsMap.get(status) || 0) + 1);
+  }
+  const counts = (statusesConfig.statuses || []).map((code) => {
+    const count = countsMap.get(code) || 0;
+    return {
+      status: code,
+      label: statusLabel(code),
+      count,
+      percent: total ? Math.round((count / total) * 1000) / 10 : 0,
+    };
+  });
+
+  const ranks = Object.fromEntries(pipeline.map((code, idx) => [code, idx]));
+  const reached = pipeline.map(() => 0);
+  const current = pipeline.map(() => 0);
+  let active = 0;
+  let success = 0;
+  let closedCount = 0;
+  const successStatus = pipeline[pipeline.length - 1] || "";
+  const activeSet = new Set(pipeline.slice(0, -1));
+
+  for (const status of resolved) {
+    if (closed.includes(status)) {
+      closedCount += 1;
+      if (pipeline.length) reached[0] += 1;
+      continue;
+    }
+    if (status === successStatus) success += 1;
+    else if (activeSet.has(status) || status in ranks) active += 1;
+    const rank = ranks[status];
+    if (rank === undefined) continue;
+    current[rank] += 1;
+    for (let i = 0; i <= rank; i += 1) reached[i] += 1;
+  }
+
+  const stages = pipeline.map((code, idx) => {
+    let conversion = null;
+    if (idx > 0) {
+      conversion = reached[idx - 1] ? Math.round((reached[idx] / reached[idx - 1]) * 1000) / 10 : 0;
+    }
+    return {
+      status: code,
+      label: statusLabel(code),
+      current: current[idx],
+      reached: reached[idx],
+      reached_percent: total ? Math.round((reached[idx] / total) * 1000) / 10 : 0,
+      conversion_from_previous: conversion,
+    };
+  });
+
+  const decided = success + closedCount;
+  return {
+    period,
+    total,
+    counts,
+    progression: {
+      pipeline,
+      closed,
+      stages,
+      active,
+      success,
+      closed_count: closedCount,
+      offer_rate: total ? Math.round((success / total) * 1000) / 10 : 0,
+      close_rate: total ? Math.round((closedCount / total) * 1000) / 10 : 0,
+      success_among_decided: decided ? Math.round((success / decided) * 1000) / 10 : 0,
+    },
+  };
+}
+
+function destroyStatusChart() {
+  if (statusChart) {
+    statusChart.destroy();
+    statusChart = null;
+  }
+}
+
+function destroyFunnelChart() {
+  if (funnelChart) {
+    funnelChart.destroy();
+    funnelChart = null;
+  }
+}
+
+function ensureStatusChart(labels, data, colors) {
+  const canvas = $("#status-chart");
+  if (!canvas || typeof Chart === "undefined") return;
+
+  if (statusChart) {
+    statusChart.data.labels = labels;
+    statusChart.data.datasets[0].data = data;
+    statusChart.data.datasets[0].backgroundColor = colors;
+    statusChart.update();
+    return;
+  }
+
+  statusChart = new Chart(canvas, {
+    type: "doughnut",
+    data: {
+      labels,
+      datasets: [
+        {
+          data,
+          backgroundColor: colors,
+          borderWidth: 2,
+          borderColor: "#1a2332",
+          hoverOffset: 6,
+        },
+      ],
+    },
+    options: {
+      responsive: true,
+      maintainAspectRatio: true,
+      cutout: "58%",
+      animation: { animateRotate: true, duration: 450 },
+      plugins: {
+        legend: { display: false },
+        tooltip: {
+          backgroundColor: "#0f1419",
+          titleColor: "#e7ecf3",
+          bodyColor: "#e7ecf3",
+          borderColor: "#2d3a4d",
+          borderWidth: 1,
+          padding: 10,
+          callbacks: {
+            label(ctx) {
+              const count = Number(ctx.raw) || 0;
+              const total = dashboardChartTotal || 0;
+              return ` ${ctx.label}: ${count} (${formatPercent(count, total)})`;
+            },
+          },
+        },
+      },
+    },
+  });
+}
+
+function ensureFunnelChart(stages) {
+  const canvas = $("#funnel-chart");
+  if (!canvas || typeof Chart === "undefined") return;
+  const labels = stages.map((s) => s.label);
+  const data = stages.map((s) => s.reached);
+  const colors = stages.map((s, index) => statusBarColor(s.status, index));
+
+  if (funnelChart) {
+    funnelChart.data.labels = labels;
+    funnelChart.data.datasets[0].data = data;
+    funnelChart.data.datasets[0].backgroundColor = colors;
+    funnelChart.update();
+    return;
+  }
+
+  funnelChart = new Chart(canvas, {
+    type: "bar",
+    data: {
+      labels,
+      datasets: [
+        {
+          label: "Reached stage",
+          data,
+          backgroundColor: colors,
+          borderRadius: 6,
+          maxBarThickness: 42,
+        },
+      ],
+    },
+    options: {
+      indexAxis: "y",
+      responsive: true,
+      maintainAspectRatio: false,
+      animation: { duration: 450 },
+      scales: {
+        x: {
+          beginAtZero: true,
+          ticks: { color: "#8b9cb3", precision: 0 },
+          grid: { color: "rgba(45, 58, 77, 0.65)" },
+        },
+        y: {
+          ticks: { color: "#e7ecf3" },
+          grid: { display: false },
+        },
+      },
+      plugins: {
+        legend: { display: false },
+        tooltip: {
+          backgroundColor: "#0f1419",
+          titleColor: "#e7ecf3",
+          bodyColor: "#e7ecf3",
+          borderColor: "#2d3a4d",
+          borderWidth: 1,
+          callbacks: {
+            label(ctx) {
+              const stage = stages[ctx.dataIndex];
+              if (!stage) return ` ${ctx.raw}`;
+              const parts = [` reached ${stage.reached} (${formatAnalyticsPercent(stage.reached_percent)})`];
+              if (stage.conversion_from_previous != null) {
+                parts.push(`conv. ${formatAnalyticsPercent(stage.conversion_from_previous)}`);
+              }
+              return parts.join(" ·");
+            },
+          },
+        },
+      },
+    },
+  });
+}
+
+function renderAnalytics(data) {
+  latestAnalytics = data;
+  const summaryEl = $("#dashboard-summary");
+  const listEl = $("#status-breakdown");
+  const chartWrap = $("#chart-wrap");
+  const chartEmpty = $("#chart-empty");
+  const canvas = $("#status-chart");
+  const progSummary = $("#progression-summary");
+  const stagesEl = $("#progression-stages");
+  if (!summaryEl || !listEl) return;
+
+  syncPeriodButtons();
+
+  const total = data.total || 0;
+  dashboardChartTotal = total;
+  const noun = total === 1 ? "application" : "applications";
+  summaryEl.textContent = `${total} ${noun} ${periodLabel(data.period || dashboardPeriod)}`;
+
+  const progression = data.progression || {};
+  if (progSummary) {
+    progSummary.hidden = total === 0;
+    $("#prog-active").textContent = String(progression.active || 0);
+    $("#prog-success").textContent = String(progression.success || 0);
+    $("#prog-closed").textContent = String(progression.closed_count || 0);
+    $("#prog-offer-rate").textContent = formatAnalyticsPercent(progression.offer_rate);
+  }
+
+  const counts = data.counts || [];
+  const withCount = counts.filter((row) => row.count > 0);
+
+  if (!total) {
+    destroyStatusChart();
+    destroyFunnelChart();
+    if (canvas) canvas.classList.add("hidden");
+    if (chartEmpty) chartEmpty.classList.remove("hidden");
+    if (chartWrap) chartWrap.classList.add("is-empty");
+    listEl.innerHTML = '<li class="status-breakdown-empty">No applications in this time range.</li>';
+    if (stagesEl) stagesEl.innerHTML = "";
+    return;
+  }
+
+  if (canvas) canvas.classList.remove("hidden");
+  if (chartEmpty) chartEmpty.classList.add("hidden");
+  if (chartWrap) chartWrap.classList.remove("is-empty");
+
+  ensureStatusChart(
+    withCount.map((row) => row.label || statusLabel(row.status)),
+    withCount.map((row) => row.count),
+    withCount.map((row, index) => statusBarColor(row.status, index))
+  );
+
+  listEl.innerHTML = counts
+    .map((row, index) => {
+      const pct = formatAnalyticsPercent(row.percent);
+      const color = statusBarColor(row.status, index);
+      const zeroClass = row.count === 0 ? " is-zero" : "";
+      return `<li class="status-breakdown-row${zeroClass}">
+        <span class="status-swatch" style="background:${color}" aria-hidden="true"></span>
+        <span class="status-breakdown-label">${escapeHtml(row.label || statusLabel(row.status))}</span>
+        <span class="status-breakdown-count">${row.count}</span>
+        <span class="status-breakdown-pct">${escapeHtml(pct)}</span>
+        <div class="status-breakdown-track" aria-hidden="true">
+          <div class="status-breakdown-fill" style="width:${row.percent || 0}%;background:${color}"></div>
+        </div>
+      </li>`;
+    })
+    .join("");
+
+  const stages = progression.stages || [];
+  ensureFunnelChart(stages);
+  if (stagesEl) {
+    stagesEl.innerHTML = stages
+      .map((stage, index) => {
+        const color = statusBarColor(stage.status, index);
+        const conv =
+          stage.conversion_from_previous == null
+            ? "—"
+            : formatAnalyticsPercent(stage.conversion_from_previous);
+        return `<li class="progression-stage-row">
+          <span class="status-swatch" style="background:${color}" aria-hidden="true"></span>
+          <span class="progression-stage-label">${escapeHtml(stage.label)}</span>
+          <span class="progression-stage-meta">now ${stage.current}</span>
+          <span class="progression-stage-meta">reached ${stage.reached}</span>
+          <span class="progression-stage-conv">${escapeHtml(conv)}</span>
+        </li>`;
+      })
+      .join("");
+  }
+}
+
+function renderDashboardFromLocal() {
+  renderAnalytics(buildLocalAnalytics(dashboardPeriod));
+}
+
+async function fetchAndRenderAnalytics() {
+  try {
+    const data = await api(`/api/analytics?period=${encodeURIComponent(dashboardPeriod)}`);
+    renderAnalytics(data);
+  } catch (err) {
+    renderDashboardFromLocal();
+    const summaryEl = $("#dashboard-summary");
+    if (summaryEl && !allJobs.length) {
+      summaryEl.textContent = `Analytics unavailable: ${err.message}`;
+    }
+  }
+}
+
+function renderDashboard() {
+  renderDashboardFromLocal();
+}
+
+function applyLocalJobStatus(index, status) {
+  const item = allJobs.find((i) => i.index === index);
+  if (!item) return false;
+  item.job.status = resolveStatusCode(status);
+  if (item.job.modified_at !== undefined) {
+    item.job.modified_at = new Date().toISOString().slice(0, 19);
+  }
+  return true;
+}
+
+function applyLocalJobStatuses(indices, status) {
+  let updated = 0;
+  for (const index of indices) {
+    if (applyLocalJobStatus(index, status)) updated += 1;
+  }
+  return updated;
+}
+
+function setDashboardPeriod(period) {
+  if (!DASHBOARD_PERIODS.includes(period)) return;
+  dashboardPeriod = period;
+  saveDashboardPeriod(period);
+  renderDashboardFromLocal();
+  fetchAndRenderAnalytics();
+}
+
 function fileLink(path, label) {
   if (!path) return `<span class="missing">${label}: —</span>`;
   const url = `/api/files?path=${encodeURIComponent(path)}`;
@@ -200,10 +689,11 @@ function attachmentCell(job) {
 }
 
 function statusSelect(index, current) {
-  const opts = statusesConfig.statuses
+  const resolved = resolveStatusCode(current);
+  const opts = selectableStatuses()
     .map(
       (s) =>
-        `<option value="${escapeHtml(s)}" ${s === current ? "selected" : ""}>${escapeHtml(statusLabel(s))}</option>`
+        `<option value="${escapeHtml(s)}" ${s === resolved ? "selected" : ""}>${escapeHtml(statusLabel(s))}</option>`
     )
     .join("");
   return `<select class="status-select" data-index="${index}" aria-label="Status">${opts}</select>`;
@@ -409,14 +899,21 @@ function renderJobs() {
   jobsBody.querySelectorAll(".status-select").forEach((sel) => {
     sel.addEventListener("change", async (e) => {
       const idx = parseInt(e.target.dataset.index, 10);
+      const nextStatus = e.target.value;
+      const item = allJobs.find((i) => i.index === idx);
+      const previousStatus = item?.job?.status || statusesConfig.default_status;
+      applyLocalJobStatus(idx, nextStatus);
+      renderDashboard();
       try {
         await api(`/api/jobs/${idx}`, {
           method: "PUT",
-          body: JSON.stringify({ status: e.target.value }),
+          body: JSON.stringify({ status: nextStatus }),
         });
         showMessage("Status updated");
         await loadJobs(false);
       } catch (err) {
+        applyLocalJobStatus(idx, previousStatus);
+        renderDashboard();
         showMessage(err.message, true);
         await loadJobs(false);
       }
@@ -613,16 +1110,20 @@ async function saveProfile(e) {
 }
 
 function fillStatusSelect(selectEl, selected) {
-  selectEl.innerHTML = statusesConfig.statuses
+  const resolved = resolveStatusCode(selected);
+  selectEl.innerHTML = selectableStatuses()
     .map(
       (s) =>
-        `<option value="${escapeHtml(s)}" ${s === selected ? "selected" : ""}>${escapeHtml(statusLabel(s))}</option>`
+        `<option value="${escapeHtml(s)}" ${s === resolved ? "selected" : ""}>${escapeHtml(statusLabel(s))}</option>`
     )
     .join("");
 }
 
 async function loadStatuses() {
   statusesConfig = await api("/api/statuses");
+  if (!statusesConfig.progression) {
+    statusesConfig.progression = { pipeline: [], closed: [], aliases: {} };
+  }
   fillStatusSelect($("#bulk-status"), statusesConfig.default_status);
 }
 
@@ -640,12 +1141,22 @@ async function loadJobs(resetPage = true) {
   if (resetPage) currentPage = 1;
   pruneSelection();
   renderJobs();
+  renderDashboardFromLocal();
+  await fetchAndRenderAnalytics();
 }
 
 async function bulkChangeStatus() {
   const indices = [...selectedJobIndices];
   if (!indices.length) return;
   const status = $("#bulk-status").value;
+  const previous = new Map(
+    indices.map((idx) => {
+      const item = allJobs.find((i) => i.index === idx);
+      return [idx, item?.job?.status || statusesConfig.default_status];
+    })
+  );
+  applyLocalJobStatuses(indices, status);
+  renderDashboard();
   try {
     const result = await api("/api/jobs/bulk", {
       method: "POST",
@@ -655,6 +1166,10 @@ async function bulkChangeStatus() {
     await loadJobs(false);
     showMessage(`Updated status for ${result.updated} job${result.updated === 1 ? "" : "s"}`);
   } catch (err) {
+    for (const [idx, prev] of previous) {
+      applyLocalJobStatus(idx, prev);
+    }
+    renderDashboard();
     showMessage(err.message, true);
   }
 }
@@ -755,6 +1270,9 @@ form.addEventListener("submit", async (e) => {
       await api("/api/jobs", { method: "POST", body: JSON.stringify(payload) });
       showMessage("Job added");
     } else {
+      const idx = parseInt(indexStr, 10);
+      applyLocalJobStatus(idx, payload.status);
+      renderDashboard();
       await api(`/api/jobs/${indexStr}`, { method: "PUT", body: JSON.stringify(payload) });
       showMessage("Job updated");
     }
@@ -1014,6 +1532,10 @@ function switchTab(tabName) {
   if (tabName === "jobs" && jobsSubView === "trash") {
     showTrashView();
   }
+  if (tabName === "dashboard") {
+    renderDashboardFromLocal();
+    fetchAndRenderAnalytics();
+  }
 }
 
 document.querySelectorAll(".app-tab").forEach((tab) => {
@@ -1021,6 +1543,10 @@ document.querySelectorAll(".app-tab").forEach((tab) => {
     if (tab.dataset.tab === "jobs") showJobsView();
     switchTab(tab.dataset.tab);
   });
+});
+
+document.querySelectorAll(".period-btn").forEach((btn) => {
+  btn.addEventListener("click", () => setDashboardPeriod(btn.dataset.period));
 });
 
 $("#btn-open-trash").addEventListener("click", () => showTrashView());
@@ -1040,14 +1566,19 @@ $("#btn-profile-cancel").addEventListener("click", () => {
 
 (async function init() {
   try {
+    dashboardPeriod = loadDashboardPeriod();
+    syncPeriodButtons();
     await loadStatuses();
     await loadProfile();
     const { revision } = await api("/api/revision");
     lastRevision = revision;
     await loadJobs();
     await loadTrash(false);
+    switchTab("dashboard");
     startRevisionPolling();
   } catch (err) {
     jobsBody.innerHTML = `<tr><td colspan="6" class="empty">Failed to load: ${escapeHtml(err.message)}</td></tr>`;
+    const summaryEl = $("#dashboard-summary");
+    if (summaryEl) summaryEl.textContent = `Failed to load: ${err.message}`;
   }
 })();
