@@ -4,7 +4,7 @@
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1" />
   <title>Job Tracker — AI Job Search AU</title>
-  <link rel="stylesheet" href="/style.css?v=21" />
+  <link rel="stylesheet" href="/style.css?v=22" />
 </head>
 <body>
   <div class="page-shell">
@@ -99,6 +99,29 @@
             <option value="weak">Weak</option>
             <option value="unset">Unset</option>
           </select>
+        </label>
+        <label class="date-filter-label">
+          Date
+          <select id="job-date-preset" aria-label="Filter by date range">
+            <option value="7d" selected>Last 7 days</option>
+            <option value="14d">Last 14 days</option>
+            <option value="28d">Last 28 days</option>
+            <option value="2m">Last 2 months</option>
+            <option value="quarter">This quarter</option>
+            <option value="6m">Last 6 months</option>
+            <option value="ytd">Year to date</option>
+            <option value="year">Last 12 months</option>
+            <option value="all">All time</option>
+            <option value="custom">Custom range</option>
+          </select>
+        </label>
+        <label class="date-range-label" id="job-date-from-wrap" hidden>
+          From
+          <input type="date" id="job-date-from" aria-label="From date" />
+        </label>
+        <label class="date-range-label" id="job-date-to-wrap" hidden>
+          To
+          <input type="date" id="job-date-to" aria-label="To date" />
         </label>
         <button type="button" id="btn-select-all-filtered" class="small">Select all</button>
         <label class="page-size-label">
@@ -282,6 +305,6 @@
   <script src="/vendor/marked.min.js"></script>
   <script src="/vendor/turndown.js"></script>
   <script src="/vendor/chart.umd.min.js"></script>
-  <script src="/app.js?v=15"></script>
+  <script src="/app.js?v=16"></script>
 </body>
 </html>

@@ -8,6 +8,9 @@ let lastRevision = 0;
 let allJobs = [];
 let searchQuery = "";
 let fitFilter = "";
+let jobDatePreset = "7d";
+let jobDateFrom = "";
+let jobDateTo = "";
 let profileData = { sections: [] };
 let profileEditors = new Map();
 let turndownService = null;
@@ -21,7 +24,21 @@ let jobsSubView = "jobs";
 let confirmResolver = null;
 const REVISION_POLL_MS = 3000;
 const DASHBOARD_PERIOD_KEY = "tracker.dashboard.period";
+const JOB_DATE_FILTER_KEY = "tracker.jobs.dateFilter";
 const DASHBOARD_PERIODS = ["week", "month", "quarter", "year", "beginning"];
+const JOB_DATE_PRESETS = ["7d", "14d", "28d", "2m", "quarter", "6m", "ytd", "year", "all", "custom"];
+const JOB_DATE_PRESET_LABELS = {
+  "7d": "last 7 days",
+  "14d": "last 14 days",
+  "28d": "last 28 days",
+  "2m": "last 2 months",
+  quarter: "this quarter",
+  "6m": "last 6 months",
+  ytd: "year to date",
+  year: "last 12 months",
+  all: "all time",
+  custom: "custom range",
+};
 const STATUS_BAR_COLORS = {
   draft: "#6b7280",
   applied: "#3b82f6",
@@ -208,6 +225,144 @@ function parseJobDate(iso) {
 
 function startOfLocalDay(d) {
   return new Date(d.getFullYear(), d.getMonth(), d.getDate());
+}
+
+function endOfLocalDay(d) {
+  return new Date(d.getFullYear(), d.getMonth(), d.getDate(), 23, 59, 59, 999);
+}
+
+function subtractMonths(date, months) {
+  const copy = new Date(date.getFullYear(), date.getMonth(), date.getDate());
+  copy.setMonth(copy.getMonth() - months);
+  return copy;
+}
+
+function loadJobDateFilter() {
+  try {
+    const raw = localStorage.getItem(JOB_DATE_FILTER_KEY);
+    if (!raw) return { preset: "7d", from: "", to: "" };
+    const data = JSON.parse(raw);
+    const preset = JOB_DATE_PRESETS.includes(data.preset) ? data.preset : "7d";
+    return {
+      preset,
+      from: typeof data.from === "string" ? data.from : "",
+      to: typeof data.to === "string" ? data.to : "",
+    };
+  } catch {
+    return { preset: "7d", from: "", to: "" };
+  }
+}
+
+function saveJobDateFilter() {
+  try {
+    localStorage.setItem(
+      JOB_DATE_FILTER_KEY,
+      JSON.stringify({ preset: jobDatePreset, from: jobDateFrom, to: jobDateTo })
+    );
+  } catch {
+    /* ignore */
+  }
+}
+
+function jobDateFilterBounds() {
+  const now = new Date();
+  const today = startOfLocalDay(now);
+  const defaultEnd = endOfLocalDay(now);
+
+  if (jobDatePreset === "all") return null;
+
+  if (jobDatePreset === "custom") {
+    const from = jobDateFrom ? parseJobDate(jobDateFrom) : null;
+    const to = jobDateTo ? parseJobDate(jobDateTo) : null;
+    if (!from && !to) return null;
+    return {
+      start: from ? startOfLocalDay(from) : null,
+      end: to ? endOfLocalDay(to) : defaultEnd,
+    };
+  }
+
+  let start = today;
+  switch (jobDatePreset) {
+    case "7d":
+      start = new Date(today);
+      start.setDate(start.getDate() - 6);
+      break;
+    case "14d":
+      start = new Date(today);
+      start.setDate(start.getDate() - 13);
+      break;
+    case "28d":
+      start = new Date(today);
+      start.setDate(start.getDate() - 27);
+      break;
+    case "2m":
+      start = subtractMonths(today, 2);
+      break;
+    case "quarter": {
+      const quarterMonth = Math.floor(today.getMonth() / 3) * 3;
+      start = new Date(today.getFullYear(), quarterMonth, 1);
+      break;
+    }
+    case "6m":
+      start = subtractMonths(today, 6);
+      break;
+    case "ytd":
+      start = new Date(today.getFullYear(), 0, 1);
+      break;
+    case "year":
+      start = subtractMonths(today, 12);
+      break;
+    default:
+      start = new Date(today);
+      start.setDate(start.getDate() - 6);
+  }
+  return { start, end: defaultEnd };
+}
+
+function jobInDateRange(job) {
+  const bounds = jobDateFilterBounds();
+  if (!bounds) return true;
+  const created = parseJobDate(jobCreatedAt(job));
+  if (!created) return false;
+  if (bounds.start && created < bounds.start) return false;
+  if (bounds.end && created > bounds.end) return false;
+  return true;
+}
+
+function jobDateFilterDescription() {
+  if (jobDatePreset === "all") return "";
+  if (jobDatePreset === "custom") {
+    if (jobDateFrom && jobDateTo) return `${jobDateFrom} to ${jobDateTo}`;
+    if (jobDateFrom) return `from ${jobDateFrom}`;
+    if (jobDateTo) return `until ${jobDateTo}`;
+    return "custom range";
+  }
+  return JOB_DATE_PRESET_LABELS[jobDatePreset] || jobDatePreset;
+}
+
+function syncJobDateFilterUi() {
+  const presetEl = $("#job-date-preset");
+  const fromWrap = $("#job-date-from-wrap");
+  const toWrap = $("#job-date-to-wrap");
+  const fromEl = $("#job-date-from");
+  const toEl = $("#job-date-to");
+  if (!presetEl) return;
+  presetEl.value = jobDatePreset;
+  const custom = jobDatePreset === "custom";
+  if (fromWrap) fromWrap.hidden = !custom;
+  if (toWrap) toWrap.hidden = !custom;
+  if (fromEl) fromEl.value = jobDateFrom;
+  if (toEl) toEl.value = jobDateTo;
+}
+
+function applyJobDateFilterChange({ preset, from = jobDateFrom, to = jobDateTo } = {}) {
+  if (preset && JOB_DATE_PRESETS.includes(preset)) jobDatePreset = preset;
+  jobDateFrom = from || "";
+  jobDateTo = to || "";
+  saveJobDateFilter();
+  syncJobDateFilterUi();
+  currentPage = 1;
+  renderJobs();
 }
 
 function periodStartDate(period, now = new Date()) {
@@ -747,6 +902,7 @@ function jobSearchText(job) {
 function filterJobs(jobs) {
   const q = searchQuery.trim().toLowerCase();
   return jobs.filter(({ job }) => {
+    if (!jobInDateRange(job)) return false;
     if (fitFilter && normalizeFitLevel(job.fit_rating) !== fitFilter) return false;
     if (q && !jobSearchText(job).includes(q)) return false;
     return true;
@@ -758,6 +914,8 @@ function activeFilterDescription() {
   const q = searchQuery.trim();
   if (q) parts.push(`“${q}”`);
   if (fitFilter) parts.push(`fit: ${fitLabel(fitFilter)}`);
+  const dateDesc = jobDateFilterDescription();
+  if (dateDesc) parts.push(`date: ${dateDesc}`);
   return parts.join(", ");
 }
 
@@ -1337,6 +1495,18 @@ $("#fit-filter").addEventListener("change", (e) => {
   renderJobs();
 });
 
+$("#job-date-preset").addEventListener("change", (e) => {
+  applyJobDateFilterChange({ preset: e.target.value });
+});
+
+$("#job-date-from").addEventListener("change", (e) => {
+  applyJobDateFilterChange({ preset: "custom", from: e.target.value, to: jobDateTo });
+});
+
+$("#job-date-to").addEventListener("change", (e) => {
+  applyJobDateFilterChange({ preset: "custom", from: jobDateFrom, to: e.target.value });
+});
+
 $("#btn-select-all-filtered").addEventListener("click", () => toggleSelectAllFiltered());
 $("#btn-bulk-status").addEventListener("click", () => bulkChangeStatus());
 $("#btn-bulk-delete").addEventListener("click", () => bulkDelete());
@@ -1568,6 +1738,11 @@ $("#btn-profile-cancel").addEventListener("click", () => {
   try {
     dashboardPeriod = loadDashboardPeriod();
     syncPeriodButtons();
+    const savedDateFilter = loadJobDateFilter();
+    jobDatePreset = savedDateFilter.preset;
+    jobDateFrom = savedDateFilter.from;
+    jobDateTo = savedDateFilter.to;
+    syncJobDateFilterUi();
     await loadStatuses();
     await loadProfile();
     const { revision } = await api("/api/revision");
