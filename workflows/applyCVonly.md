@@ -106,6 +106,8 @@ Example: `applied_jobs/20260622-NorthernHealth-AIEngineerAgenticAIAndAdvancedAna
 - Always in **English**
 - Follow the moderncv/banking format from `05-cv-templates.md`
 - Tailor the profile statement and experience bullets to the specific role
+- End the profile summary with `\textbf{Key projects:}` (never "Selected outcomes" or "Key achievements")
+- List certifications **newest-first** (see `05-cv-templates.md`); omit for space, never reverse dates
 - Reframe skills and achievements to match job requirements
 - Keep to 2 pages
 
@@ -281,7 +283,7 @@ Run the verification checklist from `AGENTS.md` now — this is the **only** ver
 ### Verification Checklist (CV-only)
 Report pass/fail for each applicable item:
 - Factual accuracy (profile, titles, dates, contact, verified company claims)
-- Targeting (profile statement and bullets tailored to the role)
+- Targeting (profile statement tailored to the role; **Key projects** label; certifications newest-first)
 - CV format (2-page moderncv/banking)
 - Quality (LaTeX, spelling, grammar)
 - Compiled PDF (exactly 2 pages, no orphaned `\cventry` titles)

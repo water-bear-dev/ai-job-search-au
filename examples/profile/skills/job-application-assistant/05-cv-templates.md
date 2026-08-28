@@ -62,12 +62,26 @@ Do not use legacy `main_<company>.tex` flat paths for new applications.
 When creating `applied_jobs/<application_folder>/<FullName>_CV.tex`:
 
 1. **Create the application folder** — run `tools/application_paths.py --mkdir` (see above)
-2. **Profile statement** — Pick or blend templates above; mirror job title language
+2. **Profile statement** — Pick or blend templates above; mirror job title language. End with a **Key projects** line (see below). Never label that line "Selected outcomes" or "Key achievements".
 3. **Core competencies** — Reorder to match posting keywords (AWS, Databricks, LLM, etc.)
 4. **Experience bullets** — Lead with most relevant role; trim less relevant bullets to fit 2 pages
 5. **Projects** — Include side projects when relevant; omit if space tight
-6. **Certifications** — Lead with certs that match the posting's stack
+6. **Certifications** — Always list **newest first**. You may drop less relevant certs for space, but never reorder remaining certs so an older date sits above a newer one. Same-month certs stay together; undated certs last. Prefer the order in `01-candidate-profile.md`.
 7. **Teaching / mentoring** — Include for roles valuing communication; shorten for pure IC roles
+
+## Profile summary: Key projects
+
+The short paragraph under the header is a two-part summary:
+
+1. Tailored profile (3–5 lines)
+2. A second sentence labelled **exactly** `\textbf{Key projects:}` followed by 3–5 semicolon-separated highlights (production work and independent projects)
+
+Do **not** use "Selected outcomes", "Key achievements", or any other label for this line.
+
+```latex
+\small{...tailored profile...\\
+\textbf{Key projects:} highlight one; highlight two; highlight three.}
+```
 
 ## LaTeX Conventions
 
@@ -93,5 +107,7 @@ Use when `/apply` falls back to HTML (user-approved) or `config/document_output.
 - **Compile:** `python tools/html_build.py --cv applied_jobs/<folder>/<FullName>_CV.html`
 - **Target:** exactly **2 pages** when printed to PDF
 - **Page breaks:** use `.cv-entry { break-inside: avoid; }` — trim content if a third page appears
+- Use `<strong>Key projects:</strong>` in the profile (not "Selected outcomes")
+- List certifications newest-first, same as LaTeX
 
 Reference example: `cv/main_example.html` (seeded from `examples/profile/`).

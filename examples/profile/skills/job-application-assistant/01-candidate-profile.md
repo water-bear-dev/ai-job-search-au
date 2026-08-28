@@ -47,6 +47,10 @@
 ### Software & Tools
 - [TOOL_LIST]
 
+## Certifications
+<!-- Newest first. CV drafts must keep this date order; omit for space, never reverse. -->
+- **[CERTIFICATION_NAME]** — [ISSUER] ([Mon YYYY])
+
 ## Publications
 <!-- List peer-reviewed publications, if any -->
 1. [AUTHOR_LIST] ([YEAR]). [TITLE]. [JOURNAL]. [DOI_LINK]

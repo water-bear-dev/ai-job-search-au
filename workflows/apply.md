@@ -164,6 +164,8 @@ Example: `applied_jobs/20260622-NorthernHealth-AIEngineerAgenticAIAndAdvancedAna
 - Always in **English**
 - Follow the moderncv/banking format from `05-cv-templates.md`
 - Tailor the profile statement and experience bullets to the specific role
+- End the profile summary with `\textbf{Key projects:}` (never "Selected outcomes" or "Key achievements")
+- List certifications **newest-first** (see `05-cv-templates.md`); omit for space, never reverse dates
 - Reframe skills and achievements to match job requirements
 - Keep to 2 pages
 
