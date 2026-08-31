@@ -1,3 +1,7 @@
+---
+framework_version: 1.0.2
+---
+
 # Cover Letter Templates and Tailoring Guide
 
 ## Template: Custom cover.cls (XeLaTeX)
@@ -5,59 +9,22 @@
 Cover letters use a custom LaTeX document class (`cover.cls`) with Lato/Raleway fonts.
 
 **Output file:** `applied_jobs/<application_folder>/<FullName>_CoverLetter.tex`
-**Compile with:** XeLaTeX (cover.cls requires fontspec)
-**Font directory:** `cover_letters/OpenFonts/fonts/` (use `../../cover_letters/OpenFonts/fonts/` in `.tex` when the file lives under `applied_jobs/`)
-
-### File naming and layout
-
-Each application shares one dated folder under `applied_jobs/` (same folder as the CV):
-
-```
-applied_jobs/<YYYYMMDD>-<companyName>-<position>/
-```
-
-| Part | Rule | Example |
-|------|------|---------|
-| `<YYYYMMDD>` | Application date | `20260622` |
-| `<companyName>` | Company in PascalCase | `NorthernHealth` |
-| `<position>` | Role in PascalCase | `SeniorAIEngineer` |
-| `<FullName>` | Candidate name; spaces → `_` | `[YOUR_NAME]` |
-
-**Compute paths** (creates folders with `--mkdir`):
-
-```bash
-python tools/application_paths.py \
-  --company "Northern Health" \
-  --role "AI Engineer" \
-  --full-name "[YOUR_NAME]" \
-  --mkdir --json
-```
-
-```
-applied_jobs/<application_folder>/<FullName>_CoverLetter.tex
-applied_jobs/<application_folder>/<FullName>_CoverLetter.pdf
-```
-
-**LaTeX adjustments** (required when the `.tex` is under `applied_jobs/<folder>/`):
-- Document class: `\documentclass{../../cover_letters/cover}` (not `\documentclass[]{cover}`)
-- Itemize font wrapper: `Path = ../../cover_letters/OpenFonts/fonts/raleway/`
-- `latex_build.py` creates an `OpenFonts` symlink in the application folder before compiling so `cover.cls` macros (`\namesection`, `\lettercontent`, etc.) resolve Lato/Raleway fonts. Do not commit the symlink.
+**Compile with:** XeLaTeX via `tools/latex_build.py` (cover.cls requires fontspec)
+**Font directory:** `cover_letters/OpenFonts/fonts/`
 
 ### Compile command
 
 ```bash
-python tools/latex_build.py applied_jobs/<application_folder>/<FullName>_CoverLetter.tex
+python tools/latex_build.py --cover "applied_jobs/<application_folder>/<FullName>_CoverLetter.tex"
 ```
 
-Build artifacts: `applied_jobs/<application_folder>/build/`
-
-Expected output: `Output written on <FullName>_CoverLetter.pdf (1 page, ...)`. Any page count other than 1 is a failure that must be fixed before presenting to the user.
+Expected output: exactly **1 page**. Any other page count is a failure that must be fixed before presenting to the user.
 
 ## Compile-and-Inspect Loop (MANDATORY)
 
 After writing the cover letter and before presenting to the user, always compile and visually inspect the PDF. Iterate until the layout is clean:
 
-1. Run `python tools/latex_build.py applied_jobs/<application_folder>/<FullName>_CoverLetter.tex`
+1. Run `xelatex -interaction=nonstopmode cover_<company>_<role>.tex`
 2. Confirm page count is exactly 1 and compile succeeded
 3. Read the PDF via the Read tool and visually check: signature fits at the bottom, no text cut off, bullet font matches body
 
@@ -77,7 +44,7 @@ The `\lettercontent{}` macro appends `\\` to its argument. This breaks when the 
 ```latex
 \lettercontent{Here is how my experience maps:}
 
-{\raggedright\fontspec[Path = ../../cover_letters/OpenFonts/fonts/raleway/]{Raleway-Medium}\fontsize{11pt}{13pt}\selectfont
+{\raggedright\fontspec[Path = OpenFonts/fonts/raleway/]{Raleway-Medium}\fontsize{11pt}{13pt}\selectfont
 \begin{itemize}
     \item ...
 \end{itemize}\par}
@@ -95,7 +62,7 @@ The font wrapper is mandatory — if you just move `\begin{itemize}` outside `\l
 % Cover Letter - [Company], [Role]
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
-\documentclass{../../cover_letters/cover}
+\documentclass[]{cover}
 \usepackage{fancyhdr}
 
 \pagestyle{fancy}
@@ -121,22 +88,25 @@ The font wrapper is mandatory — if you just move `\begin{itemize}` outside `\l
 
 \lettercontent{[Opening paragraph - role, connection to background, 2-3 sentences]}
 
-\lettercontent{[Body paragraph - most relevant experience, then bullet list]
+\lettercontent{[Body paragraph - most relevant experience, introducing the bullet list]}
 
+{\raggedright\fontspec[Path = OpenFonts/fonts/raleway/]{Raleway-Medium}\fontsize{11pt}{13pt}\selectfont
 \begin{itemize}
-    \item [Concrete achievement/skill 1]
-    \item [Concrete achievement/skill 2]
-    \item [Concrete achievement/skill 3]
-\end{itemize}
+    \item {[Concrete achievement/skill 1]}
+    \item {[Concrete achievement/skill 2]}
+    \item {[Concrete achievement/skill 3]}
+\end{itemize}\par}
 
-[Connection to company - why this role, why this company specifically]}
+\lettercontent{[Connection to company - why this role, why this company specifically]}
 
 \lettercontent{[Personal fit paragraph - behavioral strengths, team contribution, 2-3 sentences]}
 
 \lettercontent{I look forward to hearing from you.}
 
 \begin{flushright}
-\closing{Kind regards,\\}
+% No trailing \\ inside \closing{} - cover.cls appends its own \\, and a
+% doubled break triggers "! LaTeX Error: There's no line here to end."
+\closing{Kind regards,}
 
 \signature{[YOUR_NAME]}
 \end{flushright}
@@ -176,15 +146,19 @@ The font wrapper is mandatory — if you just move `\begin{itemize}` outside `\l
 - 3-5 bullets is ideal
 - Start each bullet with bold label or action verb
 - Use `\textbf{Label:}` for category-style bullets
+- A bullet whose text begins with a literal `[` must be braced: `\item {[text]}`. Unbraced, LaTeX parses `[text]` as `\item`'s optional label and renders it off the left page edge, missing from the PDF text layer entirely
 
 ### LaTeX Special Characters
-- Underscore: `\_`
-- Ampersand: `\&`
+Escape these wherever they appear in body text:
+- Ampersand: `\&` (company names: Brüel \& Kjær, H\&M) - unescaped, the compile fails loudly
+- Percent: `\%` ("grew revenue 30\%") - unescaped, it does **not** fail: everything after the `%` on that line is silently eaten as a LaTeX comment
+- Dollar: `\$`, hash: `\#`, underscore: `\_`
+- Tilde: `\textasciitilde{}`, caret: `\textasciicircum{}`, backslash: `\textbackslash{}`
 
-### Conventions (Australian market)
-- Write in English with Australian spelling (organise, specialise, centre)
-- Date format: D Month YYYY (e.g. 17 June 2026)
-- Standard closing: "Kind regards," or "Yours sincerely,"
+### Non-English Cover Letters
+- Same template structure, just write content in the posting's language
+- Adjust date format to local convention
+- Adjust closing to local convention (e.g. "Med venlig hilsen," for Danish)
 
 ## Checklist Before Finalizing
 - [ ] No em-dashes (use commas or periods instead)
@@ -202,18 +176,5 @@ The font wrapper is mandatory — if you just move `\begin{itemize}` outside `\l
 ## Submission Guidelines (Best Practice)
 - Submit only the documents the employer requests
 - Export as PDF to preserve formatting
-- Name files clearly: `<FullName>_CV` and `<FullName>_CoverLetter` (e.g. `[YOUR_NAME]_CV.pdf`)
+- Name files clearly: "[Your Name] CV" and "[Your Name] Cover Letter"
 - Follow all employer instructions regarding anonymity or specific materials
-
-## HTML fallback (when LaTeX unavailable)
-
-Use when `/apply` falls back to HTML (user-approved) or `config/document_output.json` has `html_first`.
-
-- **Template:** `templates/cover.html` — same sections as LaTeX (`cover-header`, `cover-date`, `cover-body`, `cover-signature`)
-- **Styles:** `../../templates/cover.css` (Lato name 40pt, Raleway-Medium 11pt body — mirrors `cover.cls`)
-- **Bullets:** native `<ul><li>` inside `.cover-body` (no `\lettercontent` + itemize pitfall)
-- **Compile:** `python tools/html_build.py --cover applied_jobs/<folder>/<FullName>_CoverLetter.html`
-- **Target:** exactly **1 page** including signature
-- **Fonts:** shared with LaTeX via `cover_letters/OpenFonts/` and `templates/fonts.css`
-
-Reference example: `examples/profile/cover_letters/cover_example.html`.

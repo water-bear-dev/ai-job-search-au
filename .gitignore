@@ -16,10 +16,15 @@ venv/
 
 # Personal data (never commit these)
 salary_data.json
-job_scraper/seen_jobs.json
+**/job_scraper/seen_jobs.json
+**/job_scraper/notion_sync.json
 job_scraper/*.md
 *_BehavioralReport.pdf
 linkedin_Profile.pdf
+cv/*.txt
+company_research/*.json
+gmail_sync/
+reports/
 
 # Personal photos and signatures
 *.jpg
@@ -63,6 +68,7 @@ documents/linkedin/**
 documents/diplomas/**
 documents/references/**
 documents/applications/**
+documents/postings/**
 !documents/**/.gitkeep
 
 # Personal job search tracking
@@ -79,6 +85,7 @@ agent_handoff.md
 
 # Upskill reports (personal output)
 upskill/*.md
+**/upskill/report-*.md
 
 # Agent usage logs (allow Antigravity adapter dirs)
 .agents/*

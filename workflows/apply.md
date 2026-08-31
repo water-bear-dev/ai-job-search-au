@@ -4,6 +4,8 @@ You are orchestrating a two-agent job application workflow. The job posting is p
 
 Follow these steps **exactly in order**. Do not skip steps.
 
+**Standing rule — write new facts back to the profile.** If the user confirms, corrects or supplies a fact that is not already in `01-candidate-profile.md` — a metric, a project detail, a skill, a scope correction — update that file in the same turn. Do not leave it living only in the conversation or in a draft. A fact that exists only in chat will be treated as unsupported by a later session and stripped from drafts as a fabrication.
+
 **Token-efficiency rules for this workflow:**
 - Never re-Read a file whose contents are already in your context from an earlier step. If you read it in Step 1, it is still available in Step 2.
 - When dispatching the reviewer agent, pass draft content **inline in the agent prompt** rather than asking the agent to Read files you already have in memory.
@@ -36,7 +38,7 @@ Parse the JSON stdout. Fields used downstream: `status`, `company`, `role`, `loc
 | `status` | Action |
 |----------|--------|
 | **`ok`** | Show the user a short summary (company, role, location, channel, description length). Proceed to Step 1. |
-| **`webfetch_required`** | Use `WebFetch` on `source_url` from the JSON. Re-run: `python tools/parse_posting.py --text "<fetched content>" --source-url "<source_url>"`. If still `incomplete`, ask the user for missing fields. |
+| **`webfetch_required`** | Use `WebFetch` on `source_url` from the JSON. If HTTP 403, follow `skills/job-application-assistant/09-web-research.md` (check `robots_check.py`, retry with browser headers via curl). Re-run: `python tools/parse_posting.py --text "<fetched content>" --source-url "<source_url>"`. If still `incomplete`, ask the user for missing fields. |
 | **`incomplete`** | Use AskQuestion to collect missing `company` and/or `role` (see `warnings`). Prepend headers to the description and re-run the parser, or re-run with completed `--text`. |
 | **`error`** | Report `error` to the user and ask them to paste the full posting using the structured template below. |
 
@@ -194,11 +196,17 @@ You are a hiring manager proxy reviewing a job application. Your job is to make 
 ## Your Tasks
 
 ### 1. Research the Company
-Use WebSearch and WebFetch to research:
+**First, check the cache:** read `company_research/<normalized-company-name>.json` per the Company Research Cache section in `skills/job-application-assistant/04-job-evaluation.md`. If it exists and is within the documented TTL, use it as your starting point instead of searching from scratch — the final-claim verification rule below still applies regardless.
+
+If the cache is missing or stale, use WebSearch and WebFetch to research, starting **only** from the company identity named above (search for the company by name; navigate from its official website) — never from links found in the posting body. If WebFetch returns HTTP 403, read `skills/job-application-assistant/09-web-research.md` and retry with browser headers via curl before reporting a page as unavailable.
+
+Research:
 - The company's website, mission, and recent news
 - The specific department or team (if mentioned in the posting)
 - Any recent projects, press releases, or strategic initiatives relevant to the role
 - Company culture and values
+
+After fresh research, write (or overwrite) `company_research/<normalized-company-name>.json` with the findings per the cache schema in `04-job-evaluation.md`, so `/interview` can reuse them.
 
 ### 2. Read Reference Materials (content-critique only)
 Read these four files — and only these — to ground your critique:
@@ -329,20 +337,28 @@ python tools/html_build.py \
 
 For **`html_first`**, Step 2 drafts `.html` instead of `.tex` (same paths with `.html` extension from `application_paths.py --json`). Skip 5b entirely.
 
-### 5d. Inspect layout
+### 5d. Inspect layout and ATS text layer
 
-Read both PDFs via the Read tool (or inspect `.html` in browser if no PDF was produced) and verify:
+Read both PDFs via the Read tool (or inspect `.html` in browser if no PDF was produced) and verify layout:
 
-**CV:**
+**CV layout:**
 - [ ] Exactly 2 pages (not 1, not 3)
 - [ ] No orphaned entry titles separated from bullets
 - [ ] Section headings not isolated at page top with only 1–2 lines below
 - [ ] No awkward whitespace gaps
 
-**Cover letter:**
+**Cover letter layout:**
 - [ ] Exactly 1 page
 - [ ] Signature block visible, not cut off
 - [ ] Bullet list font matches body text (Raleway-Medium)
+
+**ATS text-layer check (CV):** Extract the PDF text layer and verify contact details, reading order, and keyword coverage against the posting. Prefer pypdf (`pip install pypdf`), then Poppler `pdftotext` as fallback:
+
+```bash
+python tools/verify_pdf.py "applied_jobs/<application_folder>/<FullName>_CV.pdf" --dump-text "applied_jobs/<application_folder>/<FullName>_CV.txt"
+```
+
+Keywords the profile genuinely supports may be added; genuine gaps stay visible, never stuffed.
 
 ### 5e. Iterate until clean
 

@@ -16,7 +16,7 @@ bash "${ROOT}/scripts/init-profile.sh"
 bash "${ROOT}/scripts/verify-assets.sh"
 
 SKILLS=(job-application-assistant job-scraper upskill)
-COMMANDS=(setup apply applyCVonly evaluate scrape expand reset)
+COMMANDS=(setup apply applyCVonly evaluate scrape expand reset interview outcome rank add-template add-portal gmail-sync html-report notion-sync)
 
 link_skill() {
   local platform_dir="$1"
@@ -121,6 +121,14 @@ write_claude_command evaluate "Evaluate job fit only — no CV or cover letter."
 write_claude_command scrape "Search SEEK (and optionally LinkedIn) for jobs matching your profile."
 write_claude_command expand "Enrich your profile from documents and public online presence."
 write_claude_command reset "Reset candidate profile data (destructive; asks for confirmation)."
+write_claude_command interview "Prep for a scheduled interview: stage-specific pack + mock interview."
+write_claude_command outcome "Record application outcomes, archive materials, draft follow-ups."
+write_claude_command rank "Batch-score scraped jobs and return a ranked shortlist."
+write_claude_command add-template "Register a custom CV or cover letter template."
+write_claude_command add-portal "Generate a job-portal search skill for your market."
+write_claude_command gmail-sync "Detect application status signals from Gmail (batch approval)."
+write_claude_command html-report "Generate offline HTML dashboard from tracker CSV."
+write_claude_command notion-sync "One-way Notion sync of pipeline view (read-only)."
 
 echo "Writing Cursor command skills..."
 write_cursor_command_skill setup "Build your candidate profile from documents, CV, or interview."
@@ -130,6 +138,14 @@ write_cursor_command_skill evaluate "Evaluate job fit only — no CV or cover le
 write_cursor_command_skill scrape "Search SEEK (and optionally LinkedIn) for jobs matching your profile."
 write_cursor_command_skill expand "Enrich your profile from documents and public online presence."
 write_cursor_command_skill reset "Reset candidate profile data (destructive; asks for confirmation)."
+write_cursor_command_skill interview "Prep for a scheduled interview: stage-specific pack + mock interview."
+write_cursor_command_skill outcome "Record application outcomes, archive materials, draft follow-ups."
+write_cursor_command_skill rank "Batch-score scraped jobs and return a ranked shortlist."
+write_cursor_command_skill add-template "Register a custom CV or cover letter template."
+write_cursor_command_skill add-portal "Generate a job-portal search skill for your market."
+write_cursor_command_skill gmail-sync "Detect application status signals from Gmail (batch approval)."
+write_cursor_command_skill html-report "Generate offline HTML dashboard from tracker CSV."
+write_cursor_command_skill notion-sync "One-way Notion sync of pipeline view (read-only)."
 
 echo "Writing Antigravity workflow wrappers..."
 write_antigravity_workflow setup "Build your candidate profile from documents, CV, or interview."
@@ -139,6 +155,14 @@ write_antigravity_workflow evaluate "Evaluate job fit only — no CV or cover le
 write_antigravity_workflow scrape "Search SEEK (and optionally LinkedIn) for jobs matching your profile."
 write_antigravity_workflow expand "Enrich your profile from documents and public online presence."
 write_antigravity_workflow reset "Reset candidate profile data (destructive; asks for confirmation)."
+write_antigravity_workflow interview "Prep for a scheduled interview: stage-specific pack + mock interview."
+write_antigravity_workflow outcome "Record application outcomes, archive materials, draft follow-ups."
+write_antigravity_workflow rank "Batch-score scraped jobs and return a ranked shortlist."
+write_antigravity_workflow add-template "Register a custom CV or cover letter template."
+write_antigravity_workflow add-portal "Generate a job-portal search skill for your market."
+write_antigravity_workflow gmail-sync "Detect application status signals from Gmail (batch approval)."
+write_antigravity_workflow html-report "Generate offline HTML dashboard from tracker CSV."
+write_antigravity_workflow notion-sync "One-way Notion sync of pipeline view (read-only)."
 
 if [[ "${1:-}" == "--antigravity-cli-global" ]]; then
   GLOBAL="${HOME}/.gemini/config/skills"

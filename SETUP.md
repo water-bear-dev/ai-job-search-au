@@ -130,3 +130,37 @@ Expected if you skipped step 4 — `/apply` omits the salary step automatically.
 ### Skills or /commands not found after clone
 Re-run `./scripts/install-adapters.sh` (or the PowerShell variant on Windows). See
 [PLATFORMS.md](PLATFORMS.md).
+
+## 7. Pulling upstream updates (MadsLorentzen/ai-job-search)
+
+This AU fork was adapted from [MadsLorentzen/ai-job-search](https://github.com/MadsLorentzen/ai-job-search) but does **not** share git history with upstream (it was reimplemented for SEEK/AU). A raw `git merge` is not possible — use the tools below to port improvements selectively.
+
+The `upstream` remote should already be configured:
+
+```bash
+git remote -v   # expect upstream -> https://github.com/MadsLorentzen/ai-job-search.git
+git fetch upstream --tags
+```
+
+**Preview what changed** before pulling anything into your personalized files:
+
+```bash
+python3 tools/check_upstream_updates.py --no-fetch
+python3 tools/upstream_triage.py --remote upstream
+```
+
+- `check_upstream_updates.py` — which methodology files have newer `framework_version` stamps upstream?
+- `upstream_triage.py` — which upstream commits are worth reviewing vs safe to skip?
+
+**What to port:** framework methodology (apply workflow, PDF/ATS checks, interview prep, security guards), new commands (`/interview`, `/outcome`, `/rank`, etc.), and tooling. **What stays AU-specific:** SEEK search (`tools/seek-search/`), tracker dashboard (`tracker/`), `parse_posting.py`, `application_paths.py`, and your personalized `skills/` / `AGENTS.md`.
+
+After syncing framework files in `examples/profile/skills/`, refresh your live profile:
+
+```bash
+./scripts/install-adapters.sh   # re-wires platform adapters + new commands
+# Copy new methodology files you want into skills/ (01-candidate-profile.md is yours — merge manually)
+cp examples/profile/skills/job-application-assistant/08-application-forms.md skills/job-application-assistant/
+cp examples/profile/skills/job-application-assistant/09-web-research.md skills/job-application-assistant/
+```
+
+List commits you consciously skip in `.github/upstream-wontport.txt` (e.g. Danish demo portals).
