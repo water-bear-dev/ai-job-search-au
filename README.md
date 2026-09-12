@@ -38,6 +38,24 @@ Fill profile     Search SEEK              Fit score only          Parse -> fit -
 PDFs — you click "apply" and upload them yourself (auto-submitting violates SEEK/LinkedIn
 terms and produces worse applications anyway).
 
+## Features
+
+| Feature | What it does | How to use |
+|---------|--------------|------------|
+| **Profile setup** | Builds your candidate skills, search queries, and templates from CVs / Q&A | [`/setup`](#1-one-time-setup) |
+| **Apply** | Fit score → tailored CV + cover letter → PDFs → tracker row | [`/apply`](#2-apply-to-a-job-main-workflow) |
+| **CV only** | Same as apply, without a cover letter | [`/applyCVonly`](#6-commands-reference) |
+| **Evaluate** | Fit score and gaps only — no documents | [`/evaluate`](#3-check-fit-first-evaluate) |
+| **Scrape & rank** | Discover SEEK roles, quick/full fit triage | [`/scrape`](#4-discover-roles-scrape--optional), `/rank` |
+| **Job tracker UI** | Local dashboard: statuses, Recycle Bin, analytics, profile editor | [§5](#5-track-applications-tracker-ui) |
+| **Daily digest email** | Weekday SMTP email of strong SEEK + careers-page matches | [§5b](#5b-daily-digest-email-optional) |
+| **Salary benchmarks** | Optional company pay index lookup during evaluate/apply | [Salary benchmarking](#salary-benchmarking-optional) |
+| **Upskill** | Skill gaps vs tracked jobs → learning plan | `/upskill` |
+| **Interview prep** | Prep packs from a posting + your profile | `/interview` |
+| **Gmail / Notion sync** | Inbound status proposals from Gmail; optional Notion export | `/gmail-sync`, `/notion-sync` |
+
+Privacy model: personal profile, tracker CSV, SMTP `.env`, and `config/digest.json` stay **gitignored** on your machine.
+
 ## Why a separate AU version?
 
 SEEK is the largest Australian job board, but its HTML pages are Cloudflare-blocked — every
@@ -199,31 +217,80 @@ Open **http://127.0.0.1:8765**. The UI **auto-refreshes** when `/apply` or scrip
 
 #### Settings tab
 
-- **Daily digest** — enable/disable, recipient email, preferred companies (+ careers/ATS URLs), location source (profile or custom cities), remote/hybrid toggle, min score
-- Preview or send a test digest (uses SMTP from `.env`)
-- Email saves to `config/digest.json` and syncs the Identity email in `01-candidate-profile.md` when present
+- **Daily digest** — see [§5b](#5b-daily-digest-email-optional): enable/disable, recipient, preferred companies + careers URLs, location (profile or custom cities), remote/hybrid, hour
+- Preview or send a test digest (SMTP from `.env`)
+- Saves to gitignored `config/digest.json`; syncs Identity email in `01-candidate-profile.md` when set
 
 Statuses are configurable in `tracker/statuses.json`. The tracker is read/edit only today; it does not run agent commands yet. See [Implementation roadmap](#implementation-roadmap). API reference: [`tracker/README.md`](tracker/README.md).
 
 ### 5b. Daily digest email (optional)
 
-Weekday morning email of roles that heuristically match your profile — from SEEK (your `search-queries.md` keywords) plus preferred companies' careers pages.
+Unattended weekday email of roles that heuristically match your profile — from **SEEK** (keywords in `skills/job-scraper/search-queries.md`) plus **preferred companies' careers pages** (Greenhouse / Lever / Ashby / SmartRecruiters when you set board URLs).
 
-1. Copy `.env.example` → `.env` and fill in SMTP (`SMTP_HOST`, `SMTP_PORT`, `SMTP_USER`, `SMTP_PASSWORD`, `SMTP_FROM`). Gmail needs an [app password](https://support.google.com/accounts/answer/185833).
-2. Open the tracker **Settings** tab (or edit `config/digest.json`): set `recipient_email`, add preferred companies with optional `careers_url` (Greenhouse / Lever / Ashby board URLs work best), set `"enabled": true`. Location defaults to your profile Identity city (e.g. Melbourne) plus remote/hybrid AU; switch to **Custom cities** or set `"location_source": "custom"` + `"locations": ["Melbourne", "Sydney"]` to override.
-3. Install the schedule (Mon–Fri 08:00 **local** time by default — use a GMT+10 Mac timezone such as Brisbane/AEST). After changing the send hour in Settings, re-run the install script so launchd picks it up:
+This is **not** the LLM `/rank` pass. Scoring uses role keywords + profile skills + a preferred-company boost. Scores are used only for ranking; they are **not** shown in the email.
+
+#### Setup
+
+1. **SMTP** — copy `.env.example` → `.env` and fill in:
+
+   | Variable | Example |
+   |----------|---------|
+   | `SMTP_HOST` | `smtp.gmail.com` |
+   | `SMTP_PORT` | `587` |
+   | `SMTP_USER` | your Gmail address |
+   | `SMTP_PASSWORD` | [Gmail App Password](https://support.google.com/accounts/answer/185833) (16 letters — not your normal password) |
+   | `SMTP_FROM` | usually the same as `SMTP_USER` |
+
+2. **Digest config** — copy the example (or let `/setup` / `init-profile` seed it):
+
+   ```bash
+   cp examples/profile/config/digest.example.json config/digest.json
+   ```
+
+   `config/digest.json` is **gitignored** (recipient email + company list stay private). Edit it in the tracker **Settings** tab or by hand.
+
+3. **Enable & schedule** (macOS, Mon–Fri at the configured hour — default 08:00 local / GMT+10):
+
+   ```bash
+   # In config/digest.json or Settings: "enabled": true
+   ./scripts/install-digest.sh
+   ```
+
+   After changing the send **hour**, re-run `install-digest.sh` so launchd picks it up. Uninstall: `./scripts/uninstall-digest.sh`.
+
+#### Configure (Settings UI or `config/digest.json`)
+
+| Setting | Purpose |
+|---------|---------|
+| `enabled` | Master switch for the launchd job |
+| `recipient_email` | Inbox for digests (empty → profile Identity Email) |
+| `preferred_companies` | Name + optional `careers_url` + `aliases` — boosts SEEK hits and scrapes careers boards |
+| `location_source` | `profile` (Identity Location, e.g. Melbourne) or `custom` |
+| `locations` | City list when `location_source` is `custom` (e.g. `["Melbourne", "Sydney"]`) |
+| `include_remote` | Keep remote/hybrid Australia-wide roles |
+| `hour` / `weekdays` | Local send time (launchd uses `hour`; default Mon–Fri) |
+| `min_score` / `max_results` / `days` / `pages` | Heuristic threshold, email length, SEEK recency & depth |
+| `careers_enabled` | Toggle careers-page scraping |
+
+Prefer ATS board URLs (`boards.greenhouse.io/…`, `jobs.lever.co/…`, `jobs.ashbyhq.com/…`, `jobs.smartrecruiters.com/…`). Marketing HTML careers pages are best-effort.
+
+#### Commands
 
 ```bash
-./scripts/install-digest.sh
-# dry-run:
+# Preview without sending (ignores weekday / enabled for the run)
 python3 tools/daily_digest.py --dry-run --force
-# send once now:
+
+# Send once now
 python3 tools/daily_digest.py --send-now
+
+# SEEK only or careers only
+python3 tools/daily_digest.py --dry-run --force --skip-careers
+python3 tools/daily_digest.py --dry-run --force --skip-seek
 ```
 
-Uninstall with `./scripts/uninstall-digest.sh`. Logs land in `job_scraper/digest.log` (gitignored). Already-emailed job IDs are tracked in `job_scraper/digest_state.json`.
+Or use **Preview digest** / **Send test email** on the tracker Settings tab (restart the tracker server after UI updates).
 
-Scoring is deterministic (role keywords + profile skills + preferred-company boost) — not the LLM `/rank` pass. Careers HTML pages are best-effort; ATS JSON boards are preferred.
+Logs: `job_scraper/digest.log`. Dedup state: `job_scraper/digest_state.json` (both gitignored).
 
 ### 6. Commands reference
 
@@ -234,8 +301,13 @@ Scoring is deterministic (role keywords + profile skills + preferred-company boo
 | `/apply <url-or-text>` | Full application — CV + cover letter + PDFs |
 | `/applyCVonly <url-or-text>` | CV only — fit, draft, review, PDF (no cover letter) |
 | `/scrape` | Optional — find new roles on SEEK |
+| `/rank` | Batch-score scraped jobs with the evaluation framework |
 | `/expand` | Enrich profile from GitHub, portfolio, etc. |
 | `/upskill` | Skill gaps vs tracked jobs → learning plan |
+| `/interview` | Interview prep for a role |
+| `/gmail-sync` | Propose tracker status updates from Gmail (approve before write) |
+| `/notion-sync` | Sync tracker rows to Notion |
+| `/outcome` | Record what happened after an application |
 | `/reset` | Wipe profile and start over |
 
 ### 7. CLI tools (without the agent)
@@ -251,6 +323,16 @@ python tools/parse_posting.py --text "Company: Acme\nRole: Engineer\n\n---\nDesc
 python3 tools/seek-search/seek_search.py --keywords "AI Engineer" --where "All Melbourne VIC" --table
 python3 tools/seek-search/seek_search.py --detail https://www.seek.com.au/job/92686067
 
+# Careers / ATS boards (one URL or all preferred companies from config/digest.json)
+python3 tools/careers_search.py --url "https://jobs.ashbyhq.com/airwallex" --company Airwallex --table
+python3 tools/careers_search.py --config --keywords "engineer" --table
+
+# Daily digest (see §5b)
+python3 tools/daily_digest.py --dry-run --force
+
+# Optional salary benchmark (needs salary_data.json — see below)
+python3 salary_lookup.py "Atlassian" --city "Sydney" --json
+
 # Recompile PDFs after hand-editing .tex
 python tools/latex_build.py \
   --cv applied_jobs/20260622-AcmeCorp-DataEngineer/Andrew_Pham_CV.tex \
@@ -264,6 +346,18 @@ python tools/migrate_application_folders.py --dry-run
 ```
 
 Legacy applications may still live under `cv/<folder>/` and `cover_letters/<folder>/`. New `/apply` runs use **`applied_jobs/`** only.
+
+### Salary benchmarking (optional)
+
+During `/apply` and `/evaluate`, the agent can look up a company in a local `salary_data.json` (gitignored). Without that file the step soft-skips (`{"matches":[],"error":"missing_data"}`).
+
+```bash
+# See tools/README_SALARY_TOOL.md for Excel → JSON conversion
+python3 salary_lookup.py "Canva" --json
+python3 salary_lookup.py "NAB" --city "Sydney" --json   # city name only, not "Sydney NSW"
+```
+
+Add optional `aliases` on company entries (e.g. `["NAB"]`) so short names match. Full guide: [`tools/README_SALARY_TOOL.md`](tools/README_SALARY_TOOL.md).
 
 ## Job tracker UI
 
@@ -281,7 +375,7 @@ Local FastAPI app (`tracker/`) with a tabbed browser UI. Data lives in gitignore
 - **Dashboard** tab — analytics / status mix
 - **Job Tracker** tab — applications table
 - **Profile** tab — read/edit `AGENTS.md`
-- **Settings** tab — daily digest email, preferred companies, SMTP-related prefs in `config/digest.json`
+- **Settings** tab — daily digest: enable, recipient, preferred companies + careers URLs, location source (profile vs custom cities), remote/hybrid, hour, preview / test send (`config/digest.json`)
 - **Recycle Bin** — separate screen inside Job Tracker (button top-right, next to **Add job**); **← Back to jobs** returns to the table
 
 ### Features
@@ -296,7 +390,7 @@ Local FastAPI app (`tracker/`) with a tabbed browser UI. Data lives in gitignore
 | **Recycle Bin** | Restore to tracker, or **Delete permanently** (confirm: irreversible); shows days until purge |
 | **Attachments** | Open compiled CV PDF; cover letter link only when `cover_letter_file` is set |
 | **Profile editor** | WYSIWYG (bold, lists, links) with markdown round-trip to `AGENTS.md` |
-| **Digest settings** | Recipient email, preferred companies + careers URLs, enable schedule; preview / test send |
+| **Digest settings** | Recipient, companies + careers URLs, location filter, enable schedule; preview / test send |
 | **Live refresh** | Polls `/api/revision` when `upsert_application.py` or the UI writes CSV |
 
 ### Run options
@@ -322,6 +416,7 @@ High-level plan for evolving the repo. Full tracker history and Phase 1–3 deta
 | SEEK + optional LinkedIn CLIs | Done |
 | `tools/parse_posting.py` — URL or paste → normalized JSON | Done |
 | Job tracker UI — tabs, search, bulk actions, Recycle Bin (30-day), profile WYSIWYG | Done |
+| Daily digest email — SEEK + careers pages, SMTP, launchd, Settings tab | Done |
 | `/apply` auto-upsert to tracker + live UI refresh | Done |
 | Dated application folders + `latex_build.py` | Done |
 | Cover letter font symlink for `applied_jobs/` compiles | Done |
@@ -413,9 +508,10 @@ See [`tools/seek-search/README.md`](tools/seek-search/README.md) for full CLI do
 **Health check:** SEEK's endpoints are unofficial, so run `./verify.sh` any time to confirm
 search + detail still work (it exits non-zero with a pointer to the fix if SEEK changes shape).
 
-**macOS SSL errors** (`CERTIFICATE_VERIFY_FAILED` from the system Python): run Apple's
-[Install Certificates.command](https://www.python.org/download/mac/tcltk/) for your Python
-install, or use `curl`/`verify.sh` as a workaround until certificates are fixed.
+**macOS SSL errors** (`CERTIFICATE_VERIFY_FAILED` from the system Python): install
+[`certifi`](https://pypi.org/project/certifi/) (used by `tools/careers_search.py`), or run
+Apple's [Install Certificates.command](https://www.python.org/download/mac/tcltk/) for your
+Python version. `./verify.sh` / `curl` can confirm connectivity independently.
 
 ## Job boards
 
@@ -465,7 +561,7 @@ keeps it out of git:
 | `applied_jobs/` | Generated application CVs and cover letters (per-job folders) |
 | `cover_letters/*/*.tex`, nested CV `.tex` | Legacy application outputs |
 | `documents/` (except `.gitkeep`), `job_search_tracker.csv`, `job_search_tracker_trash.csv` | Supporting files and tracker |
-| `job_scraper/seen_jobs.json`, `*.pdf`, `salary_data.json`, `.env` | Scrape state, compiled PDFs, salary data, SMTP secrets |
+| `job_scraper/seen_jobs.json`, `*.pdf`, `salary_data.json`, `.env`, `config/digest.json` | Scrape state, compiled PDFs, salary data, SMTP secrets, digest prefs |
 
 `CLAUDE.md` is a **symlink to `AGENTS.md`** (tracked as a symlink only — safe to push as long
 as you never commit the profile file itself). After `/setup`, your filled-in workspace exists
@@ -486,8 +582,8 @@ See [INSTALL.md → Keeping your data private](INSTALL.md#keeping-your-data-priv
   keywords and `--where` locations per priority.
 - **LaTeX templates:** the CV uses [moderncv](https://ctan.org/pkg/moderncv); the cover
   letter uses a custom `cover.cls` with Lato/Raleway fonts. Swap in your own.
-- **Salary benchmarking:** optional — supply `salary_data.json` (see `tools/README_SALARY_TOOL.md`). Missing data soft-fails with `error: missing_data`; use city names without state codes; optional `aliases` help acronyms (NAB, etc.).
-- **Daily digest:** `config/digest.json` + `.env` SMTP + `scripts/install-digest.sh` (see [§5b](#5b-daily-digest-email-optional)).
+- **Salary benchmarking:** optional — supply `salary_data.json` (see [Salary benchmarking](#salary-benchmarking-optional) and `tools/README_SALARY_TOOL.md`).
+- **Daily digest:** copy `examples/profile/config/digest.example.json` → `config/digest.json`, set SMTP in `.env`, run `scripts/install-digest.sh` (see [§5b](#5b-daily-digest-email-optional)).
 
 ## Credits
 

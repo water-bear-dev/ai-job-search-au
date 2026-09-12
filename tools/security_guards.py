@@ -117,6 +117,8 @@ REQUIRED_IGNORE_RULES = [
     # from commands, not a skill, so a plain rooted rule is correct here -
     # unlike the **/-prefixed job_scraper/upskill rules above.
     "company_research/*.json",
+    # Daily digest settings (recipient email + preferred company list).
+    "config/digest.json",
 ]
 
 # Negation (re-include) rules the template legitimately ships. .gitignore is

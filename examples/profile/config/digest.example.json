@@ -1,0 +1,24 @@
+{
+  "enabled": false,
+  "hour": 8,
+  "weekdays": [1, 2, 3, 4, 5],
+  "timezone_note": "GMT+10",
+  "recipient_email": "",
+  "preferred_companies": [
+    {
+      "name": "Example Corp",
+      "careers_url": "https://boards.greenhouse.io/example",
+      "aliases": ["Example"]
+    }
+  ],
+  "min_score": 55,
+  "max_results": 25,
+  "days": 3,
+  "pages": 2,
+  "company_boost": 15,
+  "careers_enabled": true,
+  "location_source": "profile",
+  "locations": [],
+  "include_remote": true,
+  "_comment": "Copy to config/digest.json (gitignored). location_source: profile | custom. Empty recipient_email uses profile Identity Email. Prefer Greenhouse/Lever/Ashby/SmartRecruiters careers_url values."
+}

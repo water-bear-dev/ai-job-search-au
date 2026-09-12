@@ -12,6 +12,7 @@ After clone, `./scripts/install-adapters.sh` runs `scripts/init-profile.sh`, whi
 | `cv/main_example.tex` | `cv/main_example.tex` |
 | `cv/main_example.html` | `cv/main_example.html` (HTML fallback example) |
 | `config/document_output.json` | `config/document_output.json` (from example on init) |
+| `config/digest.json` | `config/digest.json` (from `digest.example.json` on init; gitignored) |
 
 Then run **`/setup`** to replace placeholders with your real profile.
 

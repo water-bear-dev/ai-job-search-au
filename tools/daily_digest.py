@@ -26,6 +26,7 @@ from pathlib import Path
 
 ROOT = Path(__file__).resolve().parent.parent
 DIGEST_CONFIG = ROOT / "config" / "digest.json"
+DIGEST_EXAMPLE = ROOT / "examples" / "profile" / "config" / "digest.example.json"
 STATE_PATH = ROOT / "job_scraper" / "digest_state.json"
 ENV_PATH = ROOT / ".env"
 SEARCH_QUERIES = ROOT / "skills" / "job-scraper" / "search-queries.md"
@@ -87,10 +88,24 @@ def load_env(path: Path = ENV_PATH) -> dict[str, str]:
     return env
 
 
+def ensure_digest_config(path: Path = DIGEST_CONFIG) -> Path:
+    """Seed config/digest.json from the example template when missing."""
+    if path.is_file():
+        return path
+    path.parent.mkdir(parents=True, exist_ok=True)
+    if DIGEST_EXAMPLE.is_file():
+        path.write_text(DIGEST_EXAMPLE.read_text(encoding="utf-8"), encoding="utf-8")
+    else:
+        path.write_text(json.dumps(DEFAULTS, indent=2, ensure_ascii=False) + "\n", encoding="utf-8")
+    return path
+
+
 def load_config(path: Path = DIGEST_CONFIG) -> dict:
     cfg = dict(DEFAULTS)
+    ensure_digest_config(path)
     if path.is_file():
         data = json.loads(path.read_text(encoding="utf-8"))
+        data.pop("_comment", None)
         cfg.update(data)
     return cfg
 

@@ -88,6 +88,9 @@ tracker/latex-cleanup.log
 # Document output preference (populated by /setup)
 config/document_output.json
 
+# Daily digest prefs (recipient, preferred companies — copy from examples/profile/config/digest.example.json)
+config/digest.json
+
 # Agent session handoff (local only — copy from agent_handoff.example.md)
 agent_handoff.md
 

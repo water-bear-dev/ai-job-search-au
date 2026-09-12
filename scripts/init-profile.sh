@@ -85,6 +85,15 @@ seed_config() {
   else
     echo "  config/document_output.json already present — skipping"
   fi
+
+  local digest_dest="${ROOT}/config/digest.json"
+  if [[ "$FORCE" == true || ! -f "$digest_dest" ]]; then
+    mkdir -p "${ROOT}/config"
+    cp "${EXAMPLES}/config/digest.example.json" "$digest_dest"
+    echo "  seeded config/digest.json"
+  else
+    echo "  config/digest.json already present — skipping"
+  fi
 }
 
 echo "Initializing local profile workspace..."
