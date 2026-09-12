@@ -46,44 +46,71 @@ STRIP_PATTERNS = [
     r",\s*.*$",  # everything after comma (sub-entities)
 ]
 
+AU_STATE_TOKENS = {
+    "nsw", "vic", "qld", "wa", "sa", "tas", "act", "nt",
+    "australia", "au",
+}
 
-def load_data():
+
+def load_data(strict: bool = False):
+    """Load salary_data.json. Soft-fails with None unless strict=True."""
     if not DATA_FILE.exists():
-        print("Error: salary_data.json not found.", file=sys.stderr)
-        print("", file=sys.stderr)
-        print("This tool requires a salary data file.", file=sys.stderr)
-        print("See tools/README_SALARY_TOOL.md for setup instructions.", file=sys.stderr)
-        print("", file=sys.stderr)
-        print("If you don't have salary data, the salary lookup", file=sys.stderr)
-        print("step will be skipped during /apply.", file=sys.stderr)
-        sys.exit(1)
+        msg = (
+            "Error: salary_data.json not found.\n\n"
+            "This tool requires a salary data file.\n"
+            "See tools/README_SALARY_TOOL.md for setup instructions.\n\n"
+            "If you don't have salary data, the salary lookup\n"
+            "step will be skipped during /apply."
+        )
+        print(msg, file=sys.stderr)
+        if strict:
+            sys.exit(1)
+        return None
     with open(DATA_FILE, "r", encoding="utf-8") as f:
         return json.load(f)
 
 
-def normalize(s):
-    """Normalize string for robust fuzzy matching."""
-    s = s.lower().strip()
-    for pat in STRIP_PATTERNS:
-        s = re.sub(pat, "", s)
-    s = re.sub(r"[^a-zæøåöäü0-9]", "", s)
-    return s.strip()
+def normalize_city(city: str) -> str:
+    """Reduce SEEK-style locations like 'Melbourne VIC' to 'melbourne'."""
+    if not city:
+        return ""
+    s = city.lower().strip()
+    # Take first segment before comma
+    s = s.split(",")[0].strip()
+    parts = re.split(r"\s+", s)
+    parts = [p for p in parts if p and p not in AU_STATE_TOKENS and not re.fullmatch(r"\d+", p)]
+    return " ".join(parts) if parts else s
 
 
-def anglicize(s):
-    """Fold accented characters to their ASCII equivalents."""
-    s = s.lower()
+def fold_unicode(s: str) -> str:
+    """NFKD accent folding plus SPELLING_VARIANTS map."""
+    s = unicodedata.normalize("NFKD", s)
+    s = "".join(c for c in s if not unicodedata.combining(c))
     for accented, ascii_ in SPELLING_VARIANTS.items():
         s = s.replace(accented, ascii_)
     return s
 
 
-def extract_core_words(s):
-    """Extract meaningful words from a company name, ignoring noise."""
-    s = s.lower()
+def normalize(s):
+    """Normalize string for robust fuzzy matching."""
+    s = fold_unicode(s.lower().strip())
     for pat in STRIP_PATTERNS:
         s = re.sub(pat, "", s)
-    words = re.findall(r"[a-zæøåöäü0-9]+", s)
+    s = re.sub(r"[^a-z0-9]", "", s)
+    return s.strip()
+
+
+def anglicize(s):
+    """Fold accented characters to their ASCII equivalents."""
+    return fold_unicode(s.lower())
+
+
+def extract_core_words(s):
+    """Extract meaningful words from a company name, ignoring noise."""
+    s = fold_unicode(s.lower())
+    for pat in STRIP_PATTERNS:
+        s = re.sub(pat, "", s)
+    words = re.findall(r"[a-z0-9]+", s)
     return [w for w in words if len(w) > 1]
 
 
@@ -145,6 +172,8 @@ def match_score(query, entry_name):
     if overlap:
         if len(q_words) == 1:
             q_word = list(q_words)[0]
+            if len(q_word) < 3:
+                return 0
             if q_word in n_words or anglicize(q_word) in {anglicize(w) for w in n_words}:
                 return 70
             else:
@@ -156,23 +185,41 @@ def match_score(query, entry_name):
     return 0
 
 
+def _entry_names(entry) -> list[str]:
+    names = [entry.get("company") or ""]
+    aliases = entry.get("aliases") or []
+    if isinstance(aliases, str):
+        aliases = [aliases]
+    names.extend(a for a in aliases if a)
+    return names
+
+
+def city_matches(query_city: str, entry_city: str) -> bool:
+    if not query_city:
+        return True
+    q = normalize_city(query_city)
+    e = normalize_city(entry_city)
+    if not q or not e:
+        return True
+    return q in e or e in q or anglicize(q) in anglicize(e) or anglicize(e) in anglicize(q)
+
+
 def search_company(data, query, city=None):
     """Search for a company by name. Returns matching entries sorted by relevance."""
     companies = data.get("companies", [])
     scored = []
 
     for entry in companies:
-        if city:
-            city_lower = city.lower()
-            entry_city = entry.get("city", "").lower()
-            if city_lower not in entry_city and anglicize(city_lower) not in anglicize(entry_city):
-                continue
+        if city and not city_matches(city, entry.get("city") or ""):
+            continue
 
-        score = match_score(query, entry["company"])
-        if score > 0:
-            scored.append((score, entry))
+        best = 0
+        for name in _entry_names(entry):
+            best = max(best, match_score(query, name))
+        if best > 0:
+            scored.append((best, entry))
 
-    scored.sort(key=lambda x: (-x[0], x[1]["company"]))
+    scored.sort(key=lambda x: (-x[0], (x[1].get("company") or "")))
 
     min_score = 30
     return [entry for score, entry in scored if score >= min_score]
@@ -182,16 +229,18 @@ def format_entry(entry, metadata):
     """Format a single company entry for display."""
     lines = []
     lines.append(f"\n{'='*60}")
-    lines.append(f"  {entry['company']}")
+    lines.append(f"  {entry.get('company') or ''}")
     if entry.get("city"):
         lines.append(f"  Location: {entry['city']}")
+    if entry.get("aliases"):
+        lines.append(f"  Aliases: {', '.join(entry['aliases'])}")
     lines.append(f"{'='*60}")
 
     # Get category data (everything except company/city fields)
     categories = entry.get("categories", {})
     if not categories:
         # Fallback: treat any numeric fields as categories
-        skip_keys = {"company", "city", "categories"}
+        skip_keys = {"company", "city", "categories", "aliases"}
         for key, value in entry.items():
             if key not in skip_keys and isinstance(value, dict):
                 categories[key] = value
@@ -208,7 +257,7 @@ def format_entry(entry, metadata):
             count = data.get("count")
             index = data.get("index")
             if count is not None or index is not None:
-                count_str = str(count) if count else "-"
+                count_str = "-" if count is None else str(count)
                 if index is not None:
                     diff = index - baseline
                     sign = "+" if diff >= 0 else ""
@@ -226,7 +275,7 @@ def format_entry(entry, metadata):
             lines.append(f"  {index_label} {baseline} = baseline")
     else:
         # Simple format: just show all non-standard fields
-        skip_keys = {"company", "city", "categories"}
+        skip_keys = {"company", "city", "categories", "aliases"}
         for key, value in entry.items():
             if key not in skip_keys:
                 display_key = key.replace("_", " ").title()
@@ -241,9 +290,20 @@ def main():
     parser.add_argument("--city", help="Filter by city name")
     parser.add_argument("--json", action="store_true", help="Output as JSON")
     parser.add_argument("--list-all", action="store_true", help="List all companies")
+    parser.add_argument(
+        "--strict",
+        action="store_true",
+        help="Exit with code 1 when salary_data.json is missing (default: soft-fail)",
+    )
     args = parser.parse_args()
 
-    data = load_data()
+    data = load_data(strict=args.strict)
+    if data is None:
+        if args.json:
+            print(json.dumps({"matches": [], "error": "missing_data"}, ensure_ascii=False))
+            sys.exit(0)
+        sys.exit(0)
+
     metadata = data.get("metadata", {})
     companies = data.get("companies", [])
 
@@ -251,7 +311,7 @@ def main():
         for entry in companies:
             city = entry.get("city", "")
             city_str = f" ({city})" if city else ""
-            print(f"{entry['company']}{city_str}")
+            print(f"{entry.get('company', '')}{city_str}")
         return
 
     if not args.company:
@@ -261,15 +321,18 @@ def main():
     results = search_company(data, args.company, args.city)
 
     if not results:
+        if args.json:
+            print(json.dumps({"matches": [], "error": "no_match", "query": args.company}, ensure_ascii=False))
+            sys.exit(0)
         print(f"No results found for '{args.company}'")
         if args.city:
             print(f"  (filtered by city: {args.city})")
         print("\nTry a shorter or different name. Company names in the dataset")
-        print("may include legal suffixes like 'A/S' or 'ApS'.")
-        sys.exit(1)
+        print("may include legal suffixes like 'Pty Ltd', or add aliases.")
+        sys.exit(0)
 
     if args.json:
-        print(json.dumps(results, ensure_ascii=False, indent=2))
+        print(json.dumps({"matches": results, "error": None}, ensure_ascii=False, indent=2))
     else:
         print(f"\nFound {len(results)} match(es) for '{args.company}':")
         for entry in results:

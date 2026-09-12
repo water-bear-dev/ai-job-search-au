@@ -62,6 +62,10 @@ ALLOWED_PERMISSIONS = {
     "Bash(python3 tools/robots_check.py:*)",
     "Bash(python3 tools/check_upstream_updates.py:*)",
     "Bash(python3 tools/upstream_triage.py:*)",
+    "Bash(python tools/daily_digest.py:*)",
+    "Bash(python3 tools/daily_digest.py:*)",
+    "Bash(python tools/careers_search.py:*)",
+    "Bash(python3 tools/careers_search.py:*)",
     "Bash(pdftotext:*)",
 }
 
@@ -73,6 +77,7 @@ REQUIRED_IGNORE_RULES = [
     # a repo-rooted rule silently fails to match it.
     "**/job_scraper/seen_jobs.json",
     "**/job_scraper/notion_sync.json",
+    "**/job_scraper/digest_state.json",
     "**/job_scraper/*.md",
     "*_BehavioralReport.pdf",
     "linkedin_Profile.pdf",
@@ -126,6 +131,7 @@ ALLOWED_IGNORE_NEGATIONS = {
     "!cv/main_example.tex",
     "!cover_letters/cover_example.tex",
     "!documents/**/.gitkeep",
+    "!.env.example",
 }
 
 # Hook commands the template legitimately ships, as "<Event>:<command>" strings.

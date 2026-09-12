@@ -128,7 +128,7 @@ If the salary lookup tool is configured (`salary_data.json` exists), look up the
 python salary_lookup.py "<Company Name>" --json
 ```
 
-If a city is known from the posting, add `--city "<City>"` to narrow results.
+If a city is known from the posting, add `--city "<City>"` using the **city name only** (e.g. `Melbourne`, not `Melbourne VIC`). Parse JSON `matches`; if `error` is `missing_data` or `no_match`, skip this section.
 
 Present findings as:
 ```

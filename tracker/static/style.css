@@ -171,6 +171,16 @@ button.primary:hover {
   background: var(--accent-hover);
 }
 
+button.secondary {
+  background: var(--surface);
+  color: var(--text);
+  border-color: var(--border);
+}
+
+button.secondary:hover {
+  border-color: var(--muted);
+}
+
 button.danger {
   color: var(--danger);
   border-color: var(--danger);
@@ -256,6 +266,118 @@ button:disabled {
 
 .profile-block li {
   margin-bottom: 0.25rem;
+}
+
+/* Digest settings */
+.digest-form {
+  max-width: 720px;
+  display: flex;
+  flex-direction: column;
+  gap: 0.85rem;
+}
+
+.digest-check {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  font-size: 0.875rem;
+}
+
+.digest-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 0.75rem 1rem;
+}
+
+.digest-grid label {
+  display: flex;
+  flex-direction: column;
+  gap: 0.35rem;
+  font-size: 0.8125rem;
+  color: var(--muted);
+}
+
+.digest-grid input,
+.digest-grid select {
+  font-size: 0.875rem;
+  padding: 0.45rem 0.55rem;
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  background: var(--surface);
+  color: var(--text);
+}
+
+.digest-hint {
+  margin: 0;
+  font-size: 0.75rem;
+  color: var(--muted);
+  line-height: 1.45;
+}
+
+.digest-subhead {
+  margin: 0.5rem 0 0;
+  font-size: 1rem;
+}
+
+.digest-companies {
+  display: flex;
+  flex-direction: column;
+  gap: 0.65rem;
+}
+
+.digest-company-row {
+  display: grid;
+  grid-template-columns: 1fr 1.4fr auto;
+  gap: 0.5rem;
+  align-items: start;
+  padding: 0.65rem;
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  background: var(--surface);
+}
+
+.digest-company-row input {
+  font-size: 0.8125rem;
+  padding: 0.4rem 0.5rem;
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  width: 100%;
+  box-sizing: border-box;
+}
+
+.digest-company-fields {
+  display: flex;
+  flex-direction: column;
+  gap: 0.35rem;
+}
+
+.digest-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+  margin-top: 0.35rem;
+}
+
+.digest-preview {
+  margin: 0.5rem 0 0;
+  padding: 0.75rem;
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  font-size: 0.75rem;
+  white-space: pre-wrap;
+  max-height: 320px;
+  overflow: auto;
+}
+
+@media (max-width: 640px) {
+  .digest-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .digest-company-row {
+    grid-template-columns: 1fr;
+  }
 }
 
 @media (max-width: 640px) {

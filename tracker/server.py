@@ -52,8 +52,23 @@ from trash_store import (
     sort_trash_newest_first,
 )
 
+# daily_digest lives under tools/ — import by path
+import sys
+
+_TOOLS = str(REPO_ROOT / "tools")
+if _TOOLS not in sys.path:
+    sys.path.insert(0, _TOOLS)
+from daily_digest import (  # noqa: E402
+    load_config as load_digest_config,
+    resolve_recipient,
+    run_digest,
+    save_config as save_digest_config,
+    update_profile_email,
+)
+
 STATUSES_PATH = TRACKER_DIR / "statuses.json"
 STATIC_DIR = TRACKER_DIR / "static"
+DIGEST_CONFIG_PATH = REPO_ROOT / "config" / "digest.json"
 
 FILE_ALLOWLIST_PREFIXES = (
     "applied_jobs/",
@@ -451,6 +466,150 @@ def read_revision() -> RevisionResponse:
 async def notify_revision() -> RevisionResponse:
     """Called by upsert scripts so open tracker tabs reload without waiting for poll."""
     return RevisionResponse(revision=get_revision())
+
+
+class PreferredCompany(BaseModel):
+    name: str
+    careers_url: str = ""
+    aliases: list[str] = Field(default_factory=list)
+
+
+class DigestSettings(BaseModel):
+    enabled: bool = False
+    hour: int = 8
+    weekdays: list[int] = Field(default_factory=lambda: [1, 2, 3, 4, 5])
+    timezone_note: str = "GMT+10"
+    recipient_email: str = ""
+    preferred_companies: list[PreferredCompany] = Field(default_factory=list)
+    min_score: int = 55
+    max_results: int = 25
+    days: int = 3
+    pages: int = 2
+    company_boost: int = 15
+    careers_enabled: bool = True
+    location_source: Literal["profile", "custom"] = "profile"
+    locations: list[str] = Field(default_factory=list)
+    include_remote: bool = True
+
+
+class DigestTestRequest(BaseModel):
+    dry_run: bool = True
+    skip_seek: bool = False
+    skip_careers: bool = False
+
+
+class DigestTestResponse(BaseModel):
+    ok: bool
+    sent: bool = False
+    recipient: str = ""
+    count: int = 0
+    subject: str = ""
+    plain: str = ""
+    notes: list[str] = Field(default_factory=list)
+    reason: str = ""
+    jobs: list[dict[str, Any]] = Field(default_factory=list)
+
+
+def _normalize_preferred(raw: list[Any]) -> list[dict]:
+    out: list[dict] = []
+    for item in raw:
+        if isinstance(item, str):
+            name = item.strip()
+            if name:
+                out.append({"name": name, "careers_url": "", "aliases": []})
+        elif isinstance(item, dict) and (item.get("name") or "").strip():
+            aliases = item.get("aliases") or []
+            if isinstance(aliases, str):
+                aliases = [a.strip() for a in aliases.split(",") if a.strip()]
+            out.append(
+                {
+                    "name": item["name"].strip(),
+                    "careers_url": (item.get("careers_url") or "").strip(),
+                    "aliases": [str(a).strip() for a in aliases if str(a).strip()],
+                }
+            )
+    return out
+
+
+@app.get("/api/digest/settings")
+def get_digest_settings() -> DigestSettings:
+    cfg = load_digest_config(DIGEST_CONFIG_PATH)
+    preferred = _normalize_preferred(cfg.get("preferred_companies") or [])
+    email = (cfg.get("recipient_email") or "").strip() or resolve_recipient(cfg)
+    return DigestSettings(
+        enabled=bool(cfg.get("enabled")),
+        hour=int(cfg.get("hour") or 8),
+        weekdays=list(cfg.get("weekdays") or [1, 2, 3, 4, 5]),
+        timezone_note=str(cfg.get("timezone_note") or "GMT+10"),
+        recipient_email=email,
+        preferred_companies=[PreferredCompany(**p) for p in preferred],
+        min_score=int(cfg.get("min_score") or 55),
+        max_results=int(cfg.get("max_results") or 25),
+        days=int(cfg.get("days") or 3),
+        pages=int(cfg.get("pages") or 2),
+        company_boost=int(cfg.get("company_boost") or 15),
+        careers_enabled=bool(cfg.get("careers_enabled", True)),
+        location_source="custom" if (cfg.get("location_source") or "profile") == "custom" else "profile",
+        locations=[str(x).strip() for x in (cfg.get("locations") or []) if str(x).strip()],
+        include_remote=bool(cfg.get("include_remote", True)),
+    )
+
+
+@app.put("/api/digest/settings")
+def put_digest_settings(body: DigestSettings) -> DigestSettings:
+    if body.hour < 0 or body.hour > 23:
+        raise HTTPException(status_code=400, detail="hour must be 0–23")
+    if body.min_score < 0 or body.min_score > 100:
+        raise HTTPException(status_code=400, detail="min_score must be 0–100")
+    cfg = load_digest_config(DIGEST_CONFIG_PATH)
+    cfg.update(
+        {
+            "enabled": body.enabled,
+            "hour": body.hour,
+            "weekdays": body.weekdays,
+            "timezone_note": body.timezone_note,
+            "recipient_email": body.recipient_email.strip(),
+            "preferred_companies": [c.model_dump() for c in body.preferred_companies if c.name.strip()],
+            "min_score": body.min_score,
+            "max_results": body.max_results,
+            "days": body.days,
+            "pages": body.pages,
+            "company_boost": body.company_boost,
+            "careers_enabled": body.careers_enabled,
+            "location_source": body.location_source,
+            "locations": [x.strip() for x in body.locations if x and str(x).strip()],
+            "include_remote": body.include_remote,
+        }
+    )
+    save_digest_config(cfg, DIGEST_CONFIG_PATH)
+    if body.recipient_email.strip():
+        update_profile_email(body.recipient_email.strip())
+    return get_digest_settings()
+
+
+@app.post("/api/digest/test")
+def test_digest(body: DigestTestRequest) -> DigestTestResponse:
+    try:
+        result = run_digest(
+            dry_run=body.dry_run,
+            force=True,
+            skip_seek=body.skip_seek,
+            skip_careers=body.skip_careers,
+            mark_sent=not body.dry_run,
+        )
+    except Exception as exc:
+        raise HTTPException(status_code=500, detail=str(exc)) from exc
+    return DigestTestResponse(
+        ok=bool(result.get("ok")),
+        sent=bool(result.get("sent")),
+        recipient=str(result.get("recipient") or ""),
+        count=int(result.get("count") or 0),
+        subject=str(result.get("subject") or ""),
+        plain=str(result.get("plain") or ""),
+        notes=list(result.get("notes") or []),
+        reason=str(result.get("reason") or ""),
+        jobs=list(result.get("jobs") or []),
+    )
 
 
 app.mount("/", StaticFiles(directory=STATIC_DIR, html=True), name="static")

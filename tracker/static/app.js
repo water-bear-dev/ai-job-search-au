@@ -1706,6 +1706,9 @@ function switchTab(tabName) {
     renderDashboardFromLocal();
     fetchAndRenderAnalytics();
   }
+  if (tabName === "settings") {
+    loadDigestSettings();
+  }
 }
 
 document.querySelectorAll(".app-tab").forEach((tab) => {
@@ -1733,6 +1736,154 @@ $("#btn-profile-cancel").addEventListener("click", () => {
   destroyProfileEditors();
   profileDialog.close();
 });
+
+/* —— Digest settings —— */
+const digestForm = $("#digest-form");
+const digestCompaniesEl = $("#digest-companies");
+const digestPreview = $("#digest-preview");
+
+function companyRowHtml(company = {}) {
+  const name = escapeHtml(company.name || "");
+  const url = escapeHtml(company.careers_url || "");
+  const aliases = escapeHtml((company.aliases || []).join(", "));
+  return `<div class="digest-company-row">
+    <div class="digest-company-fields">
+      <input type="text" class="digest-co-name" placeholder="Company name" value="${name}" required />
+      <input type="text" class="digest-co-aliases" placeholder="Aliases (comma-separated)" value="${aliases}" />
+    </div>
+    <div class="digest-company-fields">
+      <input type="url" class="digest-co-url" placeholder="Careers / ATS board URL" value="${url}" />
+    </div>
+    <button type="button" class="danger digest-co-remove" aria-label="Remove company">Remove</button>
+  </div>`;
+}
+
+function renderDigestCompanies(companies) {
+  const list = companies && companies.length ? companies : [{}];
+  digestCompaniesEl.innerHTML = list.map(companyRowHtml).join("");
+  digestCompaniesEl.querySelectorAll(".digest-co-remove").forEach((btn) => {
+    btn.addEventListener("click", () => {
+      btn.closest(".digest-company-row")?.remove();
+      if (!digestCompaniesEl.children.length) {
+        digestCompaniesEl.insertAdjacentHTML("beforeend", companyRowHtml({}));
+        bindDigestRemoveButtons();
+      }
+    });
+  });
+}
+
+function bindDigestRemoveButtons() {
+  digestCompaniesEl.querySelectorAll(".digest-co-remove").forEach((btn) => {
+    btn.onclick = () => {
+      btn.closest(".digest-company-row")?.remove();
+      if (!digestCompaniesEl.children.length) {
+        digestCompaniesEl.insertAdjacentHTML("beforeend", companyRowHtml({}));
+        bindDigestRemoveButtons();
+      }
+    };
+  });
+}
+
+function collectDigestCompanies() {
+  return [...digestCompaniesEl.querySelectorAll(".digest-company-row")]
+    .map((row) => {
+      const name = row.querySelector(".digest-co-name")?.value.trim() || "";
+      const careers_url = row.querySelector(".digest-co-url")?.value.trim() || "";
+      const aliasesRaw = row.querySelector(".digest-co-aliases")?.value || "";
+      const aliases = aliasesRaw.split(",").map((a) => a.trim()).filter(Boolean);
+      return { name, careers_url, aliases };
+    })
+    .filter((c) => c.name);
+}
+
+async function loadDigestSettings() {
+  try {
+    const data = await api("/api/digest/settings");
+    $("#digest-enabled").checked = !!data.enabled;
+    $("#digest-careers").checked = data.careers_enabled !== false;
+    $("#digest-remote").checked = data.include_remote !== false;
+    $("#digest-email").value = data.recipient_email || "";
+    $("#digest-hour").value = data.hour ?? 8;
+    $("#digest-min-score").value = data.min_score ?? 55;
+    $("#digest-max-results").value = data.max_results ?? 25;
+    $("#digest-location-source").value = data.location_source || "profile";
+    $("#digest-locations").value = (data.locations || []).join(", ");
+    renderDigestCompanies(data.preferred_companies || []);
+  } catch (err) {
+    showMessage(err.message, true);
+  }
+}
+
+async function saveDigestSettings(e) {
+  e.preventDefault();
+  const locationsRaw = $("#digest-locations").value || "";
+  const body = {
+    enabled: $("#digest-enabled").checked,
+    careers_enabled: $("#digest-careers").checked,
+    include_remote: $("#digest-remote").checked,
+    recipient_email: $("#digest-email").value.trim(),
+    hour: Number($("#digest-hour").value) || 8,
+    weekdays: [1, 2, 3, 4, 5],
+    timezone_note: "GMT+10",
+    preferred_companies: collectDigestCompanies(),
+    min_score: Number($("#digest-min-score").value) || 55,
+    max_results: Number($("#digest-max-results").value) || 25,
+    days: 3,
+    pages: 2,
+    company_boost: 15,
+    location_source: $("#digest-location-source").value || "profile",
+    locations: locationsRaw.split(",").map((s) => s.trim()).filter(Boolean),
+  };
+  try {
+    await api("/api/digest/settings", { method: "PUT", body: JSON.stringify(body) });
+    showMessage("Digest settings saved");
+    await loadDigestSettings();
+  } catch (err) {
+    showMessage(err.message, true);
+  }
+}
+
+async function runDigestTest(dryRun) {
+  digestPreview.hidden = false;
+  digestPreview.textContent = dryRun ? "Running preview…" : "Sending test email…";
+  try {
+    const result = await api("/api/digest/test", {
+      method: "POST",
+      body: JSON.stringify({ dry_run: dryRun }),
+    });
+    const lines = [
+      result.ok ? "OK" : `Skipped: ${result.reason || "unknown"}`,
+      `Recipient: ${result.recipient || "(none)"}`,
+      `Matches: ${result.count}`,
+      result.sent ? "Email sent." : "Email not sent.",
+      "",
+      result.plain || "",
+    ];
+    digestPreview.textContent = lines.join("\n");
+    showMessage(dryRun ? `Preview: ${result.count} match(es)` : result.sent ? "Test email sent" : "Digest finished");
+  } catch (err) {
+    digestPreview.textContent = err.message;
+    showMessage(err.message, true);
+  }
+}
+
+if (digestForm) {
+  digestForm.addEventListener("submit", saveDigestSettings);
+  $("#btn-add-company")?.addEventListener("click", () => {
+    digestCompaniesEl.insertAdjacentHTML("beforeend", companyRowHtml({}));
+    bindDigestRemoveButtons();
+  });
+  $("#btn-digest-dry")?.addEventListener("click", () => runDigestTest(true));
+  $("#btn-digest-send")?.addEventListener("click", async () => {
+    const ok = await confirmAction({
+      title: "Send test digest?",
+      message: "This will scrape jobs and send a real email via your SMTP settings. Continue?",
+      confirmLabel: "Send",
+      danger: false,
+    });
+    if (ok) runDigestTest(false);
+  });
+}
 
 (async function init() {
   try {

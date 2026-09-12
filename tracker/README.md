@@ -106,6 +106,9 @@ fit_rating, notes, cv_file, cover_letter_file, source
 | POST | `/api/revision` | Notify hook (called by `upsert_application.py` after writes) |
 | GET | `/api/profile` | Candidate profile sections from `AGENTS.md` |
 | PUT | `/api/profile` | Update `AGENTS.md` Candidate Profile (body: `{ sections: [{ title, raw }] }`) |
+| GET | `/api/digest/settings` | Daily digest settings (`config/digest.json`) |
+| PUT | `/api/digest/settings` | Update digest settings; syncs profile Identity email when set |
+| POST | `/api/digest/test` | Preview (`dry_run: true`) or send a test digest email |
 | GET | `/api/files?path=...` | Download attachment |
 
 Interactive docs: http://127.0.0.1:8765/api/docs

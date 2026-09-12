@@ -29,8 +29,9 @@ The tool expects `salary_data.json` with this structure:
   },
   "companies": [
     {
-      "company": "Atlassian Pty Ltd",
+      "company": "National Australia Bank",
       "city": "Sydney",
+      "aliases": ["NAB"],
       "categories": {
         "all_employees": { "count": 500, "index": 108.5 },
         "engineering": { "count": 120, "index": 112.3 }
@@ -54,8 +55,11 @@ The tool expects `salary_data.json` with this structure:
 - **metadata.index_label**: Label for the index column in output
 - **metadata.baseline_description**: Human-readable explanation of the baseline
 - **companies[].company**: Company name (required)
-- **companies[].city**: City/location (optional, used for filtering)
+- **companies[].city**: City/location (optional, used for filtering — city name only is enough; `Melbourne VIC` style SEEK locations are normalized)
+- **companies[].aliases**: Optional list of short names / trading names (e.g. `["NAB"]` for National Australia Bank)
 - **companies[].categories**: Named salary categories, each with `count` and/or `index`
+
+When `salary_data.json` is missing, `python salary_lookup.py "…" --json` soft-fails with exit 0 and `{"matches":[],"error":"missing_data"}` so `/apply` can skip cleanly. Pass `--strict` to restore the old hard-fail exit code.
 
 ## Setup options
 

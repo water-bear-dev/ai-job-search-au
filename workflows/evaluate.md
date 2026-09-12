@@ -33,7 +33,7 @@ Using the framework from `04-job-evaluation.md`, evaluate the posting (`descript
 python salary_lookup.py "<Company Name>" --json
 ```
 
-If the posting specifies a city, add `--city "<City>"` to narrow results. Parse the JSON output and include the salary benchmark in the evaluation. If the tool is not configured or returns an error, skip the salary benchmark.
+If the posting specifies a city, add `--city "<City>"` using the **city name only** (e.g. `Melbourne`, not `Melbourne VIC`). Parse the JSON: use the `matches` array when present; if `error` is `missing_data` or `no_match`, or the command fails, skip the salary benchmark.
 
 Present the evaluation to the user with:
 

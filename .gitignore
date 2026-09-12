@@ -18,7 +18,15 @@ venv/
 salary_data.json
 **/job_scraper/seen_jobs.json
 **/job_scraper/notion_sync.json
+**/job_scraper/digest_state.json
+**/job_scraper/digest.log
 job_scraper/*.md
+
+# SMTP / secrets for daily digest (keep .env.example tracked)
+.env
+.env.*
+!.env.example
+
 *_BehavioralReport.pdf
 linkedin_Profile.pdf
 cv/*.txt

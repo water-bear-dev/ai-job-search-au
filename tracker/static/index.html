@@ -4,7 +4,7 @@
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1" />
   <title>Job Tracker — AI Job Search AU</title>
-  <link rel="stylesheet" href="/style.css?v=22" />
+  <link rel="stylesheet" href="/style.css?v=24" />
 </head>
 <body>
   <div class="page-shell">
@@ -14,6 +14,7 @@
         <button type="button" class="app-tab active" id="tab-dashboard" role="tab" aria-selected="true" aria-controls="panel-dashboard" data-tab="dashboard">Dashboard</button>
         <button type="button" class="app-tab" id="tab-jobs" role="tab" aria-selected="false" aria-controls="panel-jobs" data-tab="jobs">Job Tracker</button>
         <button type="button" class="app-tab" id="tab-profile" role="tab" aria-selected="false" aria-controls="panel-profile" data-tab="profile">Profile</button>
+        <button type="button" class="app-tab" id="tab-settings" role="tab" aria-selected="false" aria-controls="panel-settings" data-tab="settings">Settings</button>
       </nav>
     </header>
 
@@ -225,6 +226,61 @@
         <p class="empty">Loading profile…</p>
       </div>
     </section>
+
+    <section id="panel-settings" class="tab-panel" role="tabpanel" aria-labelledby="tab-settings" data-panel="settings" hidden>
+      <div class="section-intro">
+        <h2>Digest settings</h2>
+        <p class="subtitle">Daily email of strong SEEK + careers-page matches (Mon–Fri). Saved to <code>config/digest.json</code>.</p>
+      </div>
+      <form id="digest-form" class="digest-form">
+        <label class="digest-check">
+          <input type="checkbox" id="digest-enabled" />
+          Enable daily digest
+        </label>
+        <label class="digest-check">
+          <input type="checkbox" id="digest-careers" checked />
+          Also scrape preferred companies' careers pages
+        </label>
+        <label class="digest-check">
+          <input type="checkbox" id="digest-remote" checked />
+          Include remote / hybrid Australia-wide roles
+        </label>
+        <div class="digest-grid">
+          <label>Recipient email
+            <input type="email" id="digest-email" placeholder="you@example.com" autocomplete="email" />
+          </label>
+          <label>Send hour (local)
+            <input type="number" id="digest-hour" min="0" max="23" value="8" />
+          </label>
+          <label>Min score (0–100)
+            <input type="number" id="digest-min-score" min="0" max="100" value="55" />
+          </label>
+          <label>Max results
+            <input type="number" id="digest-max-results" min="1" max="100" value="25" />
+          </label>
+          <label>Location source
+            <select id="digest-location-source">
+              <option value="profile">From profile (Identity Location)</option>
+              <option value="custom">Custom cities</option>
+            </select>
+          </label>
+          <label>Custom cities
+            <input type="text" id="digest-locations" placeholder="Melbourne, Sydney" />
+          </label>
+        </div>
+        <p class="digest-hint">Location filters SEEK search + careers results. With <strong>From profile</strong>, cities come from <code>01-candidate-profile.md</code> (e.g. Melbourne). Custom cities are comma-separated. Default schedule: weekdays at 08:00 local (GMT+10). SMTP credentials live in <code>.env</code>.</p>
+        <h3 class="digest-subhead">Preferred companies</h3>
+        <p class="digest-hint">Boosted in scoring. Add a Greenhouse / Lever / Ashby board URL when possible — more reliable than a marketing careers page.</p>
+        <div id="digest-companies" class="digest-companies"></div>
+        <button type="button" id="btn-add-company" class="secondary">Add company</button>
+        <div class="digest-actions">
+          <button type="submit" class="primary">Save settings</button>
+          <button type="button" id="btn-digest-dry" class="secondary">Preview digest</button>
+          <button type="button" id="btn-digest-send" class="secondary">Send test email</button>
+        </div>
+        <pre id="digest-preview" class="digest-preview" hidden></pre>
+      </form>
+    </section>
   </div>
 
   <dialog id="job-dialog">
@@ -305,6 +361,6 @@
   <script src="/vendor/marked.min.js"></script>
   <script src="/vendor/turndown.js"></script>
   <script src="/vendor/chart.umd.min.js"></script>
-  <script src="/app.js?v=16"></script>
+  <script src="/app.js?v=18"></script>
 </body>
 </html>

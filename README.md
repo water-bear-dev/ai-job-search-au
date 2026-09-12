@@ -197,7 +197,33 @@ Open **http://127.0.0.1:8765**. The UI **auto-refreshes** when `/apply` or scrip
 - View `AGENTS.md` candidate profile as rendered markdown
 - **Edit profile** — light WYSIWYG per section; saves markdown back to `AGENTS.md`
 
+#### Settings tab
+
+- **Daily digest** — enable/disable, recipient email, preferred companies (+ careers/ATS URLs), location source (profile or custom cities), remote/hybrid toggle, min score
+- Preview or send a test digest (uses SMTP from `.env`)
+- Email saves to `config/digest.json` and syncs the Identity email in `01-candidate-profile.md` when present
+
 Statuses are configurable in `tracker/statuses.json`. The tracker is read/edit only today; it does not run agent commands yet. See [Implementation roadmap](#implementation-roadmap). API reference: [`tracker/README.md`](tracker/README.md).
+
+### 5b. Daily digest email (optional)
+
+Weekday morning email of roles that heuristically match your profile — from SEEK (your `search-queries.md` keywords) plus preferred companies' careers pages.
+
+1. Copy `.env.example` → `.env` and fill in SMTP (`SMTP_HOST`, `SMTP_PORT`, `SMTP_USER`, `SMTP_PASSWORD`, `SMTP_FROM`). Gmail needs an [app password](https://support.google.com/accounts/answer/185833).
+2. Open the tracker **Settings** tab (or edit `config/digest.json`): set `recipient_email`, add preferred companies with optional `careers_url` (Greenhouse / Lever / Ashby board URLs work best), set `"enabled": true`. Location defaults to your profile Identity city (e.g. Melbourne) plus remote/hybrid AU; switch to **Custom cities** or set `"location_source": "custom"` + `"locations": ["Melbourne", "Sydney"]` to override.
+3. Install the schedule (Mon–Fri 08:00 **local** time by default — use a GMT+10 Mac timezone such as Brisbane/AEST). After changing the send hour in Settings, re-run the install script so launchd picks it up:
+
+```bash
+./scripts/install-digest.sh
+# dry-run:
+python3 tools/daily_digest.py --dry-run --force
+# send once now:
+python3 tools/daily_digest.py --send-now
+```
+
+Uninstall with `./scripts/uninstall-digest.sh`. Logs land in `job_scraper/digest.log` (gitignored). Already-emailed job IDs are tracked in `job_scraper/digest_state.json`.
+
+Scoring is deterministic (role keywords + profile skills + preferred-company boost) — not the LLM `/rank` pass. Careers HTML pages are best-effort; ATS JSON boards are preferred.
 
 ### 6. Commands reference
 
@@ -252,8 +278,10 @@ Local FastAPI app (`tracker/`) with a tabbed browser UI. Data lives in gitignore
 
 ### Layout
 
-- **Job Tracker** tab — applications table (default on load)
+- **Dashboard** tab — analytics / status mix
+- **Job Tracker** tab — applications table
 - **Profile** tab — read/edit `AGENTS.md`
+- **Settings** tab — daily digest email, preferred companies, SMTP-related prefs in `config/digest.json`
 - **Recycle Bin** — separate screen inside Job Tracker (button top-right, next to **Add job**); **← Back to jobs** returns to the table
 
 ### Features
@@ -268,6 +296,7 @@ Local FastAPI app (`tracker/`) with a tabbed browser UI. Data lives in gitignore
 | **Recycle Bin** | Restore to tracker, or **Delete permanently** (confirm: irreversible); shows days until purge |
 | **Attachments** | Open compiled CV PDF; cover letter link only when `cover_letter_file` is set |
 | **Profile editor** | WYSIWYG (bold, lists, links) with markdown round-trip to `AGENTS.md` |
+| **Digest settings** | Recipient email, preferred companies + careers URLs, enable schedule; preview / test send |
 | **Live refresh** | Polls `/api/revision` when `upsert_application.py` or the UI writes CSV |
 
 ### Run options
@@ -436,7 +465,7 @@ keeps it out of git:
 | `applied_jobs/` | Generated application CVs and cover letters (per-job folders) |
 | `cover_letters/*/*.tex`, nested CV `.tex` | Legacy application outputs |
 | `documents/` (except `.gitkeep`), `job_search_tracker.csv`, `job_search_tracker_trash.csv` | Supporting files and tracker |
-| `job_scraper/seen_jobs.json`, `*.pdf`, `salary_data.json` | Scrape state, compiled PDFs, salary data |
+| `job_scraper/seen_jobs.json`, `*.pdf`, `salary_data.json`, `.env` | Scrape state, compiled PDFs, salary data, SMTP secrets |
 
 `CLAUDE.md` is a **symlink to `AGENTS.md`** (tracked as a symlink only — safe to push as long
 as you never commit the profile file itself). After `/setup`, your filled-in workspace exists
@@ -457,7 +486,8 @@ See [INSTALL.md → Keeping your data private](INSTALL.md#keeping-your-data-priv
   keywords and `--where` locations per priority.
 - **LaTeX templates:** the CV uses [moderncv](https://ctan.org/pkg/moderncv); the cover
   letter uses a custom `cover.cls` with Lato/Raleway fonts. Swap in your own.
-- **Salary benchmarking:** optional — supply `salary_data.json` (see `tools/README_SALARY_TOOL.md`).
+- **Salary benchmarking:** optional — supply `salary_data.json` (see `tools/README_SALARY_TOOL.md`). Missing data soft-fails with `error: missing_data`; use city names without state codes; optional `aliases` help acronyms (NAB, etc.).
+- **Daily digest:** `config/digest.json` + `.env` SMTP + `scripts/install-digest.sh` (see [§5b](#5b-daily-digest-email-optional)).
 
 ## Credits
 
