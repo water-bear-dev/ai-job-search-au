@@ -104,3 +104,6 @@ upskill/*.md
 !.agents/skills/**
 !.agents/workflows/
 !.agents/workflows/**
+
+# Temp folder
+tmp/
