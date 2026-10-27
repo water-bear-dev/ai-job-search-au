@@ -22,9 +22,9 @@ When the user provides a job posting (URL or text), follow this workflow:
 - Analyze the posting for required competencies, keywords, and priorities
 - Research the company (website, LinkedIn, mission, recent news), per `09-web-research.md`
 - Score the posting against the candidate's profile using the framework in `04-job-evaluation.md`
-- Present the evaluation table and verdict
+- Present the evaluation table and verdict as **user-visible markdown in this turn** (a table is preferred). Do not ask whether to apply until that table is on screen. A one-line "I'll present the evaluation" plus an immediate proceed prompt is a workflow failure
 - Suggest whether the candidate should call the employer before applying (see `04-job-evaluation.md` for guidance)
-- Ask the user if they want to proceed with an application
+- Immediately **below** the evaluation table, ask in **plain text** (not a question tool) whether to proceed with an application, then end the turn and wait. Do not call AskQuestion / AskUserQuestion for this gate — those UIs appear instead of the table
 
 ### Step 2: Tailor CV
 - Before writing either document, derive `<company>_<role>` once by the **Subfolder naming** rule in `documents/README.md`; reuse that exact value for the CV, cover letter, and Step 3b archive path. If the rule says to stop because the derived name is empty, stop before creating any file.

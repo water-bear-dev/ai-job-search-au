@@ -43,7 +43,7 @@ This repo is a job application workspace. The AI agent acts as a career advisor 
 - **Software:** [YOUR_TOOLS_AND_SOFTWARE]
 
 ### Certifications
-<!-- List relevant certifications with dates, newest first. CV drafts must keep this order. -->
+<!-- List relevant certifications with dates, newest first. One cert per CV line; omit role-irrelevant certs. -->
 - **[CERTIFICATION_NAME]** - [HOURS]h - completed [DATE]
 
 ### Publications
@@ -113,7 +113,7 @@ After creating or updating a CV or cover letter, re-read the generated file and 
 ### Targeting
 - [ ] Profile statement / opening paragraph is tailored to the specific role (not generic)
 - [ ] Profile summary highlight line is labelled **Key projects** (not "Selected outcomes" or "Key achievements")
-- [ ] Certifications are listed newest-first (same-month together; undated last; remaining certs keep date order even if some are omitted)
+- [ ] Certifications are listed newest-first, one per line (same-month together; undated last; remaining certs keep date order even if some are omitted)
 - [ ] Skills and experience bullets are reframed to match the job requirements
 - [ ] Key job requirements are addressed (with gaps acknowledged where relevant)
 - [ ] Nice-to-have requirements are highlighted where there is a match

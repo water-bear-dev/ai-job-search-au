@@ -11,6 +11,7 @@ Follow these steps **exactly in order**. Do not skip steps.
 - When dispatching the reviewer agent, pass draft content **inline in the agent prompt** rather than asking the agent to Read files you already have in memory.
 - Run the full verification checklist exactly once, at the end (Step 6). The reviewer focuses on content critique, not verification.
 - Step 5 (compile and inspect PDFs) is mandatory and non-skippable — layout is unpredictable whether using LaTeX or HTML fallback; source files that look fine often produce broken PDFs (orphaned entry titles, cover letters spilling to page 2, bullet fonts mismatching).
+- **Fit evaluation is a hard gate.** After Step 0, show the full Step 1 evaluation to the user *before* asking whether to draft. Never call a question tool in the same turn as a promise to evaluate later.
 
 ---
 
@@ -79,7 +80,7 @@ Before reading the candidate profile:
    - `candidate_profile_path` = the overlay file
    - `profile_mode` = `internal`
 4. Otherwise set `candidate_profile_path` = `skills/job-application-assistant/01-candidate-profile.md` and `profile_mode` = `main`.
-5. When `profile_mode` is `internal`, confirm once before drafting:
+5. When `profile_mode` is `internal`, confirm once **before scoring** (this is the only user question allowed before the evaluation table — do not ask whether to draft yet):
    > "Internal NAB profile selected (Senior Analyst, Engineer / Analyst, Engineer). Continue with the internal profile, or use the main/external profile for this application?"
 6. If the user chooses the main profile for this run, switch `candidate_profile_path` back to `01-candidate-profile.md`.
 
@@ -95,7 +96,9 @@ python salary_lookup.py "<Company Name>" --json
 
 If the posting specifies a city, add `--city "<City>"` using the **city name only** (e.g. `Melbourne`, not `Melbourne VIC`). Parse the JSON: use the `matches` array when present; if `error` is `missing_data` or `no_match`, or the command fails, skip the salary benchmark.
 
-Present the evaluation to the user with:
+**Hard gate — evaluation before any proceed decision.** Do not ask whether to draft, and do not call AskQuestion / AskUserQuestion / any blocking question tool, until the user has seen the full evaluation below. A one-line "I'll present the evaluation" plus an immediate proceed prompt is a workflow failure. The parsed-posting summary in Step 0 is not a substitute for this evaluation.
+
+Present the evaluation as **user-visible markdown in this turn** (a table is preferred):
 
 1. **Skills match** - which required/preferred skills match vs. gaps
 2. **Experience match** - how work history maps to the role
@@ -104,10 +107,12 @@ Present the evaluation to the user with:
 5. **Overall fit score** and recommendation (strong fit / moderate fit / weak fit)
 6. **Profile mode** — `main` or `internal` (and which file was used)
 
-After presenting the evaluation, ask the user:
+Immediately **below** that table, ask in **plain text** (not a question tool):
 > "Should I proceed with drafting the CV and cover letter for this role?"
 
-**If the user says no, stop here.** If yes, continue to Step 2.
+Then **end this turn** and wait. Do not call AskQuestion, AskUserQuestion, or any other blocking question tool for this gate — those UIs appear instead of the evaluation table.
+
+**If the user says no, stop here.** If yes, continue to Step 2. If their next message is already a decision (yes / no / proceed / stop), honour it.
 
 ---
 
@@ -167,7 +172,7 @@ Example: `applied_jobs/20260622-NorthernHealth-AIEngineerAgenticAIAndAdvancedAna
 - Follow the moderncv/banking format from `05-cv-templates.md`
 - Tailor the profile statement and experience bullets to the specific role
 - End the profile summary with `\textbf{Key projects:}` (never "Selected outcomes" or "Key achievements")
-- List certifications **newest-first** (see `05-cv-templates.md`); omit for space, never reverse dates
+- List certifications **newest-first**, **one per line** (see `05-cv-templates.md`); omit role-irrelevant certs, never reverse dates or pair two certs on one line
 - Reframe skills and achievements to match job requirements
 - Keep to 2 pages
 

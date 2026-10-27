@@ -48,7 +48,7 @@
 - [TOOL_LIST]
 
 ## Certifications
-<!-- Newest first. CV drafts must keep this date order; omit for space, never reverse. -->
+<!-- Newest first. One cert per CV line. Omit role-irrelevant certs; never reverse remaining dates. -->
 - **[CERTIFICATION_NAME]** — [ISSUER] ([Mon YYYY])
 
 ## Publications

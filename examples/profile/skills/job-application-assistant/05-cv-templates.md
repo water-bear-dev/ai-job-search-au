@@ -137,7 +137,7 @@ The `\renewcommand*` on `\namefont` and the three `\colorlet` lines in the pream
 
 Two related patterns are fine and should be kept:
 - `\vspace{1pt}` immediately after `\section{...}` (between section heading and first item) - this is between the heading and the list, not between list items.
-- `\vspace{3pt}` between top-level `\cventry` blocks in Professional Experience or Education - this gives breathing room between roles and renders consistently.
+- Spacing **between** `\cventry` blocks (roles), not between a role header and its bullets. `cv/moderncv-banking-cventry-fix.sty` already adds `1em` after each entry and zeros list `\topsep` inside the description. Do not insert `\vspace` between the italic job title and `\begin{itemize}` — that opens a hole under the header. Extra `\vspace{3pt}` between top-level `\cventry` blocks is optional if you need more than the sty default.
 
 ### Section headings must match the CV's language (important)
 
@@ -227,6 +227,11 @@ If there is a gap in your employment history:
 
 ### Evidence Links
 Wherever the CV names a verifiable artifact - a public project, a hackathon entry, a publication - carry its link (`\href`) so a reader can verify the claim in one click. A CV whose strongest claims are checkable reads as more credible everywhere else too.
+
+### Certifications
+- One certification per `\item` (HTML: one `<li>`). Never pair two certs on one line with a semicolon.
+- Keep each remaining cert on a **single visual line** — shorten issuer names if the full string would wrap.
+- List **newest first**. Omit certs that do not match the posting's stack or domain; never reverse remaining dates. Same-month stay together; undated last.
 
 ### Honors and Awards
 - Keep format brief, one line each
@@ -366,7 +371,7 @@ Cut the lowest-total-score line first, regardless of which section it sits in.
 3. **Low-relevance experience bullets.** A bullet about work that does not touch posting keywords, wherever it sits. This cuts across sections before touching the structural list.
 4. **Low-relevance supporting content.** An older-role bullet that does not speak to the target role. A certification that does not touch the posting's stack. A language entry that can be condensed to one line.
 5. **Low-relevance publications.** Keep 1-2 publications that best match the posting. Cut the rest before touching experience bullets.
-6. **Last-resort structural cuts.** Oldest education entry, tightening an older role to 2 bullets, collapsing Certifications into a single line. These only happen if the relevance-weighted cuts above have already been exhausted.
+6. **Last-resort structural cuts.** Oldest education entry, tightening an older role to 2 bullets, dropping remaining low-relevance certifications (never pair two certs on one line to save space). These only happen if the relevance-weighted cuts above have already been exhausted.
 
 ### Pitfalls to avoid
 

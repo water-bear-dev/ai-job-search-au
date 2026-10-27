@@ -8,6 +8,8 @@ Format based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
 ### Changed
 
+- **CV `\cventry` spacing** — role header sits tight against its bullets; the gap is between positions (`cv/moderncv-banking-cventry-fix.sty`)
+- **CV certifications** — one cert per line; omit role-irrelevant certs rather than pairing two on one line
 - **Candidate profile** — observability/ops skills made explicit: Grafana; Kubernetes ops via kubectl and k9s (alongside existing Splunk, OpenSearch, Jenkins, Kubernetes/EKS)
 
 ### Added
