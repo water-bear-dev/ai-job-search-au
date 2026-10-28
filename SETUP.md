@@ -61,7 +61,7 @@ Open your AI agent in this repo and run:
 | `05-cv-templates.md` | Profile-statement templates for your background |
 | `07-interview-prep.md` | STAR examples from your experience |
 | `cv/main_example.tex` | Your LaTeX CV with real details |
-| `skills/job-scraper/search-queries.md` | Role keywords + AU locations for `/scrape` |
+| `skills/job-scraper/search-queries.md` | Role nouns, ATS tiers, and locations for `/scrape` |
 | `config/document_output.json` | LaTeX-first vs HTML-first for `/apply` |
 
 > **Privacy:** `skills/`, `AGENTS.md`, and `cv/` are **gitignored** after `/setup` fills them with your data. Tracked placeholders live in `examples/profile/`; `./scripts/install-adapters.sh` copies them on first run. Cover-letter fonts in `cover_letters/OpenFonts/` are **tracked** — run `./scripts/verify-assets.sh` after clone.
@@ -71,7 +71,7 @@ Open your AI agent in this repo and run:
 ```
 /setup --section skills
 /setup --section experience
-/setup --section search     # reconfigure /scrape role keywords & locations
+/setup --section search     # reconfigure /scrape role nouns & locations
 ```
 
 ## 4. Optional: salary benchmarking
@@ -89,7 +89,7 @@ salary step is simply omitted.
 ## 5. Search and apply
 
 ```
-/scrape                                         # ranked SEEK shortlist by fit
+/scrape                                         # ATS dork shortlist (add `seek` for SEEK backup)
 /apply https://www.seek.com.au/job/12345678     # SEEK URL — full description auto-fetched
 /apply [paste a job description]                # or paste any posting text
 ```

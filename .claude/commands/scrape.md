@@ -1,5 +1,5 @@
 ---
-description: Search SEEK (and optionally LinkedIn) for jobs matching your profile.
+description: Search ATS boards via Google dorks (SEEK backup and LinkedIn opt-in).
 ---
 
 Follow the workflow in `workflows/scrape.md`.

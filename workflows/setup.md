@@ -308,14 +308,14 @@ For each reference:
 - Relationship to the user
 
 ### Section 9: Job Search Configuration
-This section generates the search queries that power `/scrape`. Use the information from Sections 1, 4, and 7 to build targeted queries.
+This section generates the search recipe that powers `/scrape` (ATS Google dorks) and daily digest (SEEK + preferred-company boards). Use Sections 1, 4, and 7.
 
 Ask about:
-- **Role titles to search for:** "What job titles should I search for? For example: Data Scientist, ML Engineer, Geophysicist." Collect 3-8 specific titles.
-- **Key skills as search terms:** "Which of your skills are most likely to appear in job postings?" Pick 3-5 that are distinctive and searchable.
-- **Target companies (optional):** "Are there specific companies you'd like to monitor for openings?"
-- **Geographic scope:** "Which cities or regions should I search in? How far are you willing to commute?" Use this to define the location filter tiers (ideal, acceptable, borderline, too far).
-- **Job portals:** "Discovery runs on SEEK via the built-in `tools/seek-search` CLI, plus optional startup boards (Wellfound, Y Combinator). Are there other sites you want to monitor? (e.g. a specific company's careers page)." SEEK is the default for the Australian market; LinkedIn/Indeed can be browsed manually and pasted into `/apply`.
+- **Role nouns:** "What job titles should I search for — the words you'd type, without Senior/Staff?" Collect 3-8 nouns (e.g. Data Engineer, AI Engineer). Do **not** invent Priority 1-4 lists.
+- **Location:** home city (SEEK `--where` like `All Melbourne VIC`) and whether to include Australia-wide remote/hybrid. ATS dorks get an OR-group of city + country + remote + hybrid; omit the group if they have no location preference.
+- **Target companies (optional):** "Any companies to watch on the daily digest?" Store careers URLs in `config/digest.json` `preferred_companies` when they have one (Greenhouse / Lever / Ashby / SmartRecruiters preferred).
+- **Domain boost (optional):** words that should raise digest score only (e.g. banking, fintech) — never a hard filter.
+- **Job portals:** Default `/scrape` is three ATS `site:` dorks (wide / enterprise / startup). SEEK is backup via `/scrape seek`. LinkedIn stays opt-in. They can override tier prefixes or site lists; otherwise keep the template defaults (enterprise: Senior/Staff/Principal; startup: Founding/Principal/Lead; startup sites include Ashby).
 
 **Important:** Also suggest role types the user may not have considered, based on their skill profile. For example:
 - If they have strong Python + domain expertise: "Have you considered roles like 'Technical Consultant' or 'Solutions Engineer' in your domain?"
@@ -377,16 +377,13 @@ Replace placeholder personal data with their actual name, contact info, and add 
 Set `document_output_mode` from Section 9b (or Path A follow-up). Default: `latex_first_with_html_fallback`.
 
 ### 9. Generate `skills/job-scraper/search-queries.md`
-Replace all placeholder tokens in the search queries file with the user's actual information from Section 9 (or the equivalent follow-up questions in Path A's Step A7):
-- Replace `[YOUR_PRIMARY_ROLE_TYPE]`, `[YOUR_PRIMARY_JOB_TITLE]`, etc. with actual role titles
-- Replace `[YOUR_KEY_SKILL]`, `[YOUR_DOMAIN_KEYWORD_1]`, etc. with actual skills and domain terms
-- Replace `[YOUR_CITY]`, `[YOUR_COUNTRY]`, `[YOUR_REGION]` with actual location
-- Fill in the location filter tiers (ideal, acceptable, borderline, too far) based on commute constraints
-- Organize queries into priority categories matching the user's career direction:
-  - Priority 1: Their strongest/most desired role direction
-  - Priority 2: Their domain expertise
-  - Priority 3: Adjacent roles they could pivot into
-  - Priority 4: Broader roles (wider net)
+Fill the recipe template (`examples/profile/skills/job-scraper/search-queries.md` shape) from Section 9. Keep the default **Tiers** prefixes and `site:` lists unless the user overrode them.
+- **Role nouns:** replace `[YOUR_ROLE_NOUN_*]` with the titles they type (no seniority prefix)
+- **SEEK locations:** `All <City> <STATE>` plus `All Australia` when they want remote/hybrid AU
+- **ATS location tokens:** city, country, `remote`, `hybrid` — leave the fence empty if they have no location preference
+- **Domain boost:** optional tokens; leave empty if they declined
+- **Fit filters:** city, salary band, recency
+- Do **not** recreate Priority 1-4 blocks or Wellfound/YC queries. `/scrape` runs `tools/ats_dorks.py`; do not hand-write Google dorks.
 
 ### 10. Optional internal application profile
 

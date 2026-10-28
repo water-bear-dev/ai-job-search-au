@@ -27,7 +27,7 @@ A structured workflow that turns an AI coding agent into a full job-application 
 /setup            /scrape (optional)      /evaluate <url | text>     /apply <url | text>
   |                  |                         |                        |
   v                  v                         v                        v
-Fill profile     Search SEEK              Fit score only          Parse -> fit -> draft
+Fill profile     Search ATS boards        Fit score only          Parse -> fit -> draft
                  Rank by fit              (no documents)          CV + cover (LaTeX)
                      |                                              -> reviewer -> PDFs
                      v                                              -> applied_jobs/
@@ -46,7 +46,7 @@ terms and produces worse applications anyway).
 | **Apply** | Fit score → tailored CV + cover letter → PDFs → tracker row | [`/apply`](#2-apply-to-a-job-main-workflow) |
 | **CV only** | Same as apply, without a cover letter | [`/applyCVonly`](#6-commands-reference) |
 | **Evaluate** | Fit score and gaps only — no documents | [`/evaluate`](#3-check-fit-first-evaluate) |
-| **Scrape & rank** | Discover SEEK roles, quick/full fit triage | [`/scrape`](#4-discover-roles-scrape--optional), `/rank` |
+| **Scrape & rank** | Discover ATS roles (SEEK backup), quick/full fit triage | [`/scrape`](#4-discover-roles-scrape--optional), `/rank` |
 | **Job tracker UI** | Local dashboard: statuses, Recycle Bin, analytics, profile editor | [§5](#5-track-applications-tracker-ui) |
 | **Daily digest email** | Weekday SMTP email of strong SEEK + careers-page matches | [§5b](#5b-daily-digest-email-optional) |
 | **Salary benchmarks** | Optional company pay index lookup during evaluate/apply | [Salary benchmarking](#salary-benchmarking-optional) |
@@ -83,7 +83,7 @@ git config core.hooksPath .githooks
 # 3. Build your profile (Claude Code: claude then /setup; Cursor/Antigravity: /setup)
 /setup
 
-# 4. (Optional) Search SEEK for matching roles
+# 4. (Optional) Search ATS boards for matching roles
 /scrape
 
 # 5. Apply — URL or pasted posting (/scrape not required)
@@ -180,10 +180,13 @@ Same URL or paste format as `/apply`. You get a fit score and gaps — **no** La
 
 ### 4. Discover roles (`/scrape`) — optional
 
-Search SEEK (and optionally LinkedIn) against your profile and rank results:
+Search ATS boards (Greenhouse, Lever, Ashby, Workday, and similar) against your profile
+via three Google `site:` dorks built from `skills/job-scraper/search-queries.md`.
+Add `seek` for a SEEK CLI backup, or `linkedin` to opt in to LinkedIn:
 
 ```text
 /scrape
+/scrape seek
 ```
 
 Pick a listing from the shortlist, then `/apply` with its URL. Scrape state is stored in `job_scraper/seen_jobs.json` (gitignored) so repeat runs skip old listings.
@@ -225,9 +228,9 @@ Statuses are configurable in `tracker/statuses.json`. The tracker is read/edit o
 
 ### 5b. Daily digest email (optional)
 
-Unattended weekday email of roles that heuristically match your profile — from **SEEK** (keywords in `skills/job-scraper/search-queries.md`) plus **preferred companies' careers pages** (Greenhouse / Lever / Ashby / SmartRecruiters when you set board URLs).
+Unattended weekday email of roles that heuristically match your profile — from **SEEK** (role nouns in `skills/job-scraper/search-queries.md`), **preferred companies' careers pages** (Greenhouse / Lever / Ashby / SmartRecruiters when you set board URLs), and the **same ATS `site:` dorks as `/scrape`** when `BRAVE_SEARCH_API_KEY` is set in `.env`. Without that key, dorks are skipped and SEEK + careers still run.
 
-This is **not** the LLM `/rank` pass. Scoring uses role keywords + profile skills + a preferred-company boost. Scores are used only for ranking; they are **not** shown in the email.
+This is **not** the LLM `/rank` pass. Scoring uses role nouns + profile skills + a preferred-company boost, plus optional seniority-prefix and domain-token boosts (never excludes). Scores are used only for ranking; they are **not** shown in the email.
 
 #### Setup
 
@@ -240,6 +243,7 @@ This is **not** the LLM `/rank` pass. Scoring uses role keywords + profile skill
    | `SMTP_USER` | your Gmail address |
    | `SMTP_PASSWORD` | [Gmail App Password](https://support.google.com/accounts/answer/185833) (16 letters — not your normal password) |
    | `SMTP_FROM` | usually the same as `SMTP_USER` |
+   | `BRAVE_SEARCH_API_KEY` | optional — [Brave Search API](https://brave.com/search/api/) key so digest can run the same ATS dorks as `/scrape` |
 
 2. **Digest config** — copy the example (or let `/setup` / `init-profile` seed it):
 
@@ -283,9 +287,10 @@ python3 tools/daily_digest.py --dry-run --force
 # Send once now
 python3 tools/daily_digest.py --send-now
 
-# SEEK only or careers only
+# SEEK only or careers only or skip ATS dorks
 python3 tools/daily_digest.py --dry-run --force --skip-careers
 python3 tools/daily_digest.py --dry-run --force --skip-seek
+python3 tools/daily_digest.py --dry-run --force --skip-ats
 ```
 
 Or use **Preview digest** / **Send test email** on the tracker Settings tab (restart the tracker server after UI updates).
@@ -300,7 +305,7 @@ Logs: `job_scraper/digest.log`. Dedup state: `job_scraper/digest_state.json` (bo
 | `/evaluate <url-or-text>` | Fit check only, no documents |
 | `/apply <url-or-text>` | Full application — CV + cover letter + PDFs |
 | `/applyCVonly <url-or-text>` | CV only — fit, draft, review, PDF (no cover letter) |
-| `/scrape` | Optional — find new roles on SEEK |
+| `/scrape` | Optional — find new roles on ATS boards (SEEK via `/scrape seek`) |
 | `/rank` | Batch-score scraped jobs with the evaluation framework |
 | `/expand` | Enrich profile from GitHub, portfolio, etc. |
 | `/upskill` | Skill gaps vs tracked jobs → learning plan |
@@ -318,6 +323,9 @@ Useful for debugging or scripting:
 # Normalize a URL or paste (what /apply uses in Step 0)
 python tools/parse_posting.py "https://www.seek.com.au/job/92686067"
 python tools/parse_posting.py --text "Company: Acme\nRole: Engineer\n\n---\nDescription..."
+
+# ATS Google dorks used by /scrape (from search-queries.md)
+python3 tools/ats_dorks.py
 
 # SEEK search / full job description
 python3 tools/seek-search/seek_search.py --keywords "AI Engineer" --where "All Melbourne VIC" --table
@@ -517,7 +525,8 @@ Python version. `./verify.sh` / `curl` can confirm connectivity independently.
 
 | Board | Status | Notes |
 |-------|--------|-------|
-| **SEEK** | ✅ Primary | `tools/seek-search` — search + full descriptions, no key |
+| **ATS boards** | ✅ Default `/scrape` | `tools/ats_dorks.py` + WebSearch `site:` queries (Greenhouse, Lever, Ashby, Workday, iCIMS, Taleo, SmartRecruiters) |
+| **SEEK** | ✅ Digest + `/scrape seek` | `tools/seek-search` — search + full descriptions, no key |
 | **LinkedIn** | ⚠️ Optional, **off by default** | `tools/linkedin-search` — works with no key, but **automating LinkedIn is against its Terms of Service**; personal/low-volume use only, at your own risk |
 | **Indeed** | ❌ Not supported | Cloudflare/CAPTCHA-walled with no usable API. Paste an Indeed posting into `/apply` instead |
 
@@ -526,7 +535,7 @@ Python version. `./verify.sh` / `curl` can confirm connectivity independently.
 `tools/linkedin-search` adds LinkedIn coverage via its guest endpoints (no login, no key).
 **LinkedIn's User Agreement prohibits automated access**, so this is **disabled by default in
 `/scrape`** and intended for personal, low-volume use only — it can get your IP rate-limited.
-SEEK is the primary, supported source. To opt in, run `/scrape linkedin`, or use the tool
+Prefer `/scrape` (ATS dorks) or `/scrape seek` over LinkedIn. To opt in, run `/scrape linkedin`, or use the tool
 directly:
 
 ```bash
@@ -578,8 +587,9 @@ See [INSTALL.md → Keeping your data private](INSTALL.md#keeping-your-data-priv
 
 ## Customisation
 
-- **Search queries:** edit `skills/job-scraper/search-queries.md` — role-title
-  keywords and `--where` locations per priority.
+- **Search queries:** edit `skills/job-scraper/search-queries.md` — role nouns,
+  ATS tier prefixes/sites, and locations. `/scrape` runs `tools/ats_dorks.py`;
+  do not hand-edit Google dorks.
 - **LaTeX templates:** the CV uses [moderncv](https://ctan.org/pkg/moderncv); the cover
   letter uses a custom `cover.cls` with Lato/Raleway fonts. Swap in your own.
 - **Salary benchmarking:** optional — supply `salary_data.json` (see [Salary benchmarking](#salary-benchmarking-optional) and `tools/README_SALARY_TOOL.md`).

@@ -1,12 +1,14 @@
 #!/usr/bin/env python3
-"""Daily job digest: SEEK + preferred careers pages → heuristic score → SMTP email.
+"""Daily job digest: SEEK + preferred careers pages + optional ATS dorks → SMTP email.
 
+ATS dorks (same queries as /scrape) run only when BRAVE_SEARCH_API_KEY is set.
 Schedule via scripts/install-digest.sh (launchd Mon–Fri 08:00 local / GMT+10).
 
 Usage:
   python3 tools/daily_digest.py --dry-run
   python3 tools/daily_digest.py --send-now --force
   python3 tools/daily_digest.py --skip-careers
+  python3 tools/daily_digest.py --skip-ats
 """
 
 from __future__ import annotations
@@ -34,6 +36,8 @@ PROFILE_PATH = ROOT / "skills" / "job-application-assistant" / "01-candidate-pro
 SEEK_CLI = ROOT / "tools" / "seek-search" / "seek_search.py"
 
 sys.path.insert(0, str(ROOT / "tools"))
+from ats_dorks import build_dorks, parse_recipe  # noqa: E402
+from brave_search import search_dorks  # noqa: E402
 from careers_search import (  # noqa: E402
     fetch_all_from_config,
     load_preferred_companies,
@@ -130,51 +134,16 @@ def save_state(state: dict, path: Path = STATE_PATH) -> None:
 
 
 def parse_search_queries(path: Path = SEARCH_QUERIES) -> tuple[list[str], list[str], bool]:
-    """Return (keywords, where_locations, include_remote_au)."""
-    if not path.is_file():
-        return [], ["All Australia"], True
-    text = path.read_text(encoding="utf-8")
-
-    locations: list[str] = []
-    for m in re.finditer(r"`(All [^`]+)`", text):
-        loc = m.group(1).strip()
-        if loc not in locations:
-            locations.append(loc)
+    """Return (role nouns, SEEK --where locations, include_remote_au)."""
+    recipe = parse_recipe(path)
+    keywords = recipe.nouns[:12]
+    locations = [loc for loc in recipe.seek_locations if loc][:4]
     if not locations:
         locations = ["All Australia"]
-
-    include_remote = "All Australia" in locations or bool(re.search(r"--remote", text))
-
-    # Keywords from fenced blocks under Priority sections (first 3 priorities).
-    keywords: list[str] = []
-    sections = re.split(r"^###\s+Priority\s+(\d+)", text, flags=re.M)
-    # sections: [preamble, "1", body1, "2", body2, ...]
-    for i in range(1, len(sections), 2):
-        num = int(sections[i])
-        body = sections[i + 1] if i + 1 < len(sections) else ""
-        if num > 3:
-            continue
-        for block in re.finditer(r"```(?:\w*)\n(.*?)```", body, re.S):
-            for line in block.group(1).splitlines():
-                line = line.strip()
-                if not line or line.startswith("#") or line.startswith("["):
-                    continue
-                if line not in keywords:
-                    keywords.append(line)
-
-    # Fallback: any non-placeholder lines in code fences in the file
-    if not keywords:
-        for block in re.finditer(r"```(?:\w*)\n(.*?)```", text, re.S):
-            for line in block.group(1).splitlines():
-                line = line.strip()
-                if not line or line.startswith("#") or "[" in line:
-                    continue
-                if line.startswith("site:") or "OR" in line:
-                    continue
-                if line not in keywords:
-                    keywords.append(line)
-
-    return keywords[:12], locations[:4], include_remote
+    include_remote = "All Australia" in locations or any(
+        re.search(r"remote|hybrid|wfh", tok, re.I) for tok in recipe.ats_location_tokens
+    )
+    return keywords, locations, include_remote
 
 
 def extract_profile_skills(path: Path = PROFILE_PATH) -> list[str]:
@@ -427,8 +396,10 @@ def score_job(
     skills: list[str],
     preferred: list[dict],
     company_boost: int,
+    prefixes: list[str] | None = None,
+    domain_boost: list[str] | None = None,
 ) -> tuple[int, bool]:
-    """Return (score 0-100, is_preferred)."""
+    """Return (score 0-100, is_preferred). Prefixes and domain tokens boost; they never exclude."""
     title = (job.get("title") or "").lower()
     blob = " ".join(
         [
@@ -452,6 +423,24 @@ def score_job(
             score += min(35, 12 * hits)
         elif any(t in blob for t in tokens):
             score += 6
+
+    # Seniority prefix boost (search bait, not a filter)
+    if any(
+        re.search(rf"\b{re.escape(p.lower())}\b", title)
+        for p in (prefixes or [])
+        if p
+    ):
+        score += 8
+
+    # Optional domain tokens — boost only (word boundary so "AI" does not match "email")
+    domain_hits = 0
+    for token in domain_boost or []:
+        t = token.lower().strip()
+        if len(t) < 2:
+            continue
+        if re.search(rf"\b{re.escape(t)}\b", blob):
+            domain_hits += 1
+    score += min(12, domain_hits * 4)
 
     # Skill overlap
     skill_hits = 0
@@ -498,8 +487,19 @@ def dedupe_jobs(jobs: list[dict]) -> list[dict]:
     return out
 
 
-def collect_jobs(cfg: dict, skip_seek: bool = False, skip_careers: bool = False) -> tuple[list[dict], list[str]]:
-    keywords, _query_locs, _query_remote = parse_search_queries()
+def _brave_api_key() -> str:
+    env = load_env()
+    return (env.get("BRAVE_SEARCH_API_KEY") or os.environ.get("BRAVE_SEARCH_API_KEY") or "").strip()
+
+
+def collect_jobs(
+    cfg: dict,
+    skip_seek: bool = False,
+    skip_careers: bool = False,
+    skip_ats: bool = False,
+) -> tuple[list[dict], list[str]]:
+    recipe = parse_recipe()
+    keywords = recipe.nouns[:12]
     cities, include_remote, seek_where = resolve_location_prefs(cfg)
     skills = extract_profile_skills()
     preferred = load_preferred_companies()
@@ -543,6 +543,19 @@ def collect_jobs(cfg: dict, skip_seek: bool = False, skip_careers: bool = False)
         raw.extend(career_jobs)
         notes.extend(f"careers: {e}" for e in errors)
 
+    if skip_ats:
+        notes.append("ATS dorks skipped (--skip-ats)")
+    else:
+        brave_key = _brave_api_key()
+        if not brave_key:
+            notes.append("ATS dorks skipped (no BRAVE_SEARCH_API_KEY)")
+        else:
+            dorks = build_dorks(recipe)
+            ats_jobs, ats_notes = search_dorks(dorks, brave_key)
+            raw.extend(ats_jobs)
+            notes.extend(ats_notes)
+            notes.append(f"ATS dorks: {len(ats_jobs)} hit(s) from {len(dorks)} queries")
+
     jobs = dedupe_jobs(raw)
     before_loc = len(jobs)
     jobs = [j for j in jobs if job_matches_location(j, cities, include_remote)]
@@ -558,6 +571,8 @@ def collect_jobs(cfg: dict, skip_seek: bool = False, skip_careers: bool = False)
             skills,
             preferred,
             int(cfg.get("company_boost") or 15),
+            prefixes=recipe.all_prefixes(),
+            domain_boost=recipe.domain_boost,
         )
         job = dict(job)
         job["digest_score"] = sc
@@ -595,6 +610,8 @@ def build_email_bodies(jobs: list[dict], notes: list[str]) -> tuple[str, str]:
             badges.append("Careers page")
         elif src == "seek":
             badges.append("SEEK")
+        elif src == "ats-dork":
+            badges.append("ATS dork")
         badge_str = f" [{', '.join(badges)}]" if badges else ""
         meta = " | ".join(
             filter(
@@ -689,6 +706,7 @@ def run_digest(
     force: bool = False,
     skip_seek: bool = False,
     skip_careers: bool = False,
+    skip_ats: bool = False,
     mark_sent: bool = True,
 ) -> dict:
     cfg = load_config()
@@ -698,7 +716,9 @@ def run_digest(
     if not should_run_today(cfg, force=force or dry_run):
         return {"ok": False, "reason": "not_scheduled_today", "jobs": []}
 
-    jobs, notes = collect_jobs(cfg, skip_seek=skip_seek, skip_careers=skip_careers)
+    jobs, notes = collect_jobs(
+        cfg, skip_seek=skip_seek, skip_careers=skip_careers, skip_ats=skip_ats
+    )
     state = load_state()
     emailed = set(state.get("emailed_ids") or [])
     fresh = []
@@ -752,6 +772,7 @@ def main() -> None:
     ap.add_argument("--force", action="store_true", help="Ignore weekday schedule (and with --send-now, ignore enabled)")
     ap.add_argument("--skip-seek", action="store_true")
     ap.add_argument("--skip-careers", action="store_true")
+    ap.add_argument("--skip-ats", action="store_true", help="Skip Brave ATS dork channel")
     args = ap.parse_args()
 
     force = args.force or args.send_now
@@ -774,6 +795,7 @@ def main() -> None:
             force=force or dry_run,
             skip_seek=args.skip_seek,
             skip_careers=args.skip_careers,
+            skip_ats=args.skip_ats,
         )
     except Exception as exc:
         print(f"[digest] error: {exc}", file=sys.stderr)

@@ -294,22 +294,37 @@ def fetch_html(url: str, company: str) -> list[dict]:
     return jobs
 
 
+_KEYWORD_STOP = frozenset({"and", "the", "for", "with", "all"})
+
+
 def filter_by_keywords(jobs: list[dict], keywords: list[str]) -> list[dict]:
-    """Keep jobs whose title overlaps any keyword token (case-insensitive)."""
+    """Keep jobs whose title matches a keyword as a phrase, or all tokens of one noun.
+
+    "Data Engineer" keeps "Senior Data Engineer" but not "Software Engineer".
+    """
     if not keywords:
         return jobs
-    tokens = set()
+    phrases: list[tuple[str, list[str]]] = []
     for kw in keywords:
-        for t in re.findall(r"[a-z0-9+#.]{2,}", kw.lower()):
-            if t not in {"and", "the", "for", "with", "all"}:
-                tokens.add(t)
-    if not tokens:
+        phrase = kw.strip().lower()
+        if not phrase or "[" in phrase or phrase.startswith("site:") or " OR " in phrase:
+            continue
+        tokens = [
+            t
+            for t in re.findall(r"[a-z0-9+#.]{2,}", phrase)
+            if t not in _KEYWORD_STOP
+        ]
+        if tokens:
+            phrases.append((phrase, tokens))
+    if not phrases:
         return jobs
     out = []
     for job in jobs:
         title = (job.get("title") or "").lower()
-        if any(t in title for t in tokens):
-            out.append(job)
+        for phrase, tokens in phrases:
+            if phrase in title or all(t in title for t in tokens):
+                out.append(job)
+                break
     return out
 
 
