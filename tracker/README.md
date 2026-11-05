@@ -22,6 +22,8 @@ python server.py
 
 Open **http://127.0.0.1:8765** — the **Dashboard** tab loads first with a Chart.js status breakdown (week / month / quarter / year / beginning). Changing a job’s status updates the chart immediately.
 
+On the **Job Tracker** tab, **Export PDF** downloads a landscape printable log of submitted applications for the current date filter (`created_at`). Drafts are excluded. Filename: `applied-jobs-YYYY-MM-DD-YYYY-MM-DD.pdf`.
+
 Override port: `TRACKER_PORT=9000 python server.py`
 
 The UI **auto-refreshes** every few seconds when `job_search_tracker.csv` changes (e.g. after `/apply` runs `upsert_application.py`). Keep this server running while you work.

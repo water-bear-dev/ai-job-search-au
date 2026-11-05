@@ -18,12 +18,13 @@ from contextlib import asynccontextmanager
 from pathlib import Path
 from typing import Any, Literal
 
+from datetime import datetime
+
 from fastapi import FastAPI, HTTPException, Query
-from fastapi.responses import FileResponse
+from fastapi.responses import FileResponse, Response
 from fastapi.staticfiles import StaticFiles
 from starlette.middleware.base import BaseHTTPMiddleware
 from starlette.requests import Request
-from starlette.responses import Response
 from pydantic import BaseModel, Field
 
 from csv_store import (
@@ -40,7 +41,12 @@ from csv_store import (
 )
 from profile import parse_profile, write_profile
 from revision import bump_revision, get_revision
-from analytics import PERIODS, build_analytics
+from analytics import PERIODS, build_analytics, parse_job_datetime
+from export_pdf import (
+    build_applied_jobs_pdf,
+    export_filename,
+    filter_submitted_rows,
+)
 from trash_store import (
     RETENTION_DAYS,
     days_until_purge,
@@ -243,10 +249,71 @@ def apply_update(row: dict, update: JobUpdate) -> dict:
 
 
 
+def _parse_export_bound(value: str | None, *, end_of_day: bool) -> datetime | None:
+    """Parse YYYY-MM-DD or ISO datetime for export range bounds."""
+    raw = (value or "").strip()
+    if not raw:
+        return None
+    dt = parse_job_datetime(raw)
+    if dt is None:
+        raise HTTPException(
+            status_code=400,
+            detail=f"Invalid date '{value}'. Use YYYY-MM-DD or ISO datetime.",
+        )
+    if len(raw) == 10 and "T" not in raw:
+        if end_of_day:
+            return dt.replace(hour=23, minute=59, second=59)
+        return dt.replace(hour=0, minute=0, second=0)
+    return dt
+
+
 @app.get("/api/jobs")
 def list_jobs() -> list[JobWithIndex]:
     rows = read_rows()
     return [JobWithIndex(index=idx, job=row) for idx, row in sort_jobs_newest_first(rows)]
+
+
+@app.get("/api/jobs/export.pdf")
+def export_jobs_pdf(
+    from_date: str | None = Query(None, alias="from"),
+    to_date: str | None = Query(None, alias="to"),
+) -> Response:
+    """Download a printable PDF log of submitted applications in the date range."""
+    start = _parse_export_bound(from_date, end_of_day=False)
+    end = _parse_export_bound(to_date, end_of_day=True)
+    if start is not None and end is not None and start > end:
+        raise HTTPException(status_code=400, detail="'from' must be on or before 'to'")
+
+    cfg = load_statuses()
+    aliases = dict(cfg.progression.aliases or {})
+    rows = filter_submitted_rows(
+        read_rows(),
+        default_status=cfg.default_status,
+        aliases=aliases,
+        from_date=start,
+        to_date=end,
+    )
+    if not rows:
+        raise HTTPException(
+            status_code=404,
+            detail="No submitted applications in this date range",
+        )
+
+    pdf_bytes = build_applied_jobs_pdf(
+        rows,
+        from_date=start,
+        to_date=end,
+        default_status=cfg.default_status,
+        labels=cfg.labels,
+        aliases=aliases,
+        status_order=cfg.statuses,
+    )
+    filename = export_filename(start, end, rows)
+    return Response(
+        content=pdf_bytes,
+        media_type="application/pdf",
+        headers={"Content-Disposition": f'attachment; filename="{filename}"'},
+    )
 
 
 @app.post("/api/jobs", status_code=201)

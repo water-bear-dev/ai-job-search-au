@@ -231,6 +231,52 @@ function endOfLocalDay(d) {
   return new Date(d.getFullYear(), d.getMonth(), d.getDate(), 23, 59, 59, 999);
 }
 
+function formatLocalDateYYYYMMDD(d) {
+  const y = d.getFullYear();
+  const m = String(d.getMonth() + 1).padStart(2, "0");
+  const day = String(d.getDate()).padStart(2, "0");
+  return `${y}-${m}-${day}`;
+}
+
+async function exportAppliedJobsPdf() {
+  const params = new URLSearchParams();
+  const bounds = jobDateFilterBounds();
+  if (bounds) {
+    if (bounds.start) params.set("from", formatLocalDateYYYYMMDD(bounds.start));
+    if (bounds.end) params.set("to", formatLocalDateYYYYMMDD(bounds.end));
+  }
+  const qs = params.toString();
+  const url = qs ? `/api/jobs/export.pdf?${qs}` : "/api/jobs/export.pdf";
+  try {
+    const res = await fetch(url);
+    if (!res.ok) {
+      let detail = res.statusText || "Export failed";
+      try {
+        const data = await res.json();
+        if (data && data.detail) detail = data.detail;
+      } catch {
+        /* ignore */
+      }
+      throw new Error(detail);
+    }
+    const blob = await res.blob();
+    const disposition = res.headers.get("Content-Disposition") || "";
+    const match = /filename="([^"]+)"/i.exec(disposition);
+    const filename = match ? match[1] : "applied-jobs.pdf";
+    const objectUrl = URL.createObjectURL(blob);
+    const a = document.createElement("a");
+    a.href = objectUrl;
+    a.download = filename;
+    document.body.appendChild(a);
+    a.click();
+    a.remove();
+    URL.revokeObjectURL(objectUrl);
+    showMessage("PDF downloaded");
+  } catch (err) {
+    showMessage(err.message || "Export failed", true);
+  }
+}
+
 function subtractMonths(date, months) {
   const copy = new Date(date.getFullYear(), date.getMonth(), date.getDate());
   copy.setMonth(copy.getMonth() - months);
@@ -1460,6 +1506,9 @@ btnDelete.addEventListener("click", async () => {
 });
 
 $("#btn-add").addEventListener("click", openAdd);
+$("#btn-export-pdf").addEventListener("click", () => {
+  exportAppliedJobsPdf();
+});
 $("#btn-cancel").addEventListener("click", () => dialog.close());
 
 $("#page-size").addEventListener("change", (e) => {
